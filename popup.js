@@ -37,6 +37,7 @@ class AkoStore {
     const keyInput = document.getElementById('keyInput');
     const valueInput = document.getElementById('valueInput');
     const addBtn = document.getElementById('addBtn');
+    const itemsList = document.getElementById('itemsList');
 
     // Add button click event
     addBtn.addEventListener('click', () => this.addItem());
@@ -57,6 +58,32 @@ class AkoStore {
     // Input validation
     keyInput.addEventListener('input', () => this.validateInput());
     valueInput.addEventListener('input', () => this.validateInput());
+
+    // Event delegation for dynamic buttons
+    itemsList.addEventListener('click', (e) => {
+      const button = e.target.closest('button');
+      if (!button) return;
+
+      const itemId = button.closest('.item')?.dataset.id;
+      if (!itemId) return;
+
+      if (button.classList.contains('copy-btn')) {
+        const itemValue = this.items[itemId]?.value;
+        if (itemValue) this.copyToClipboard(itemValue);
+      } else if (button.classList.contains('edit-btn')) {
+        this.editItem(itemId);
+      } else if (button.classList.contains('delete-btn')) {
+        this.deleteItem(itemId);
+      } else if (button.classList.contains('save-btn')) {
+        this.saveEdit(itemId);
+      } else if (button.classList.contains('cancel-btn')) {
+        this.cancelEdit();
+      } else if (button.classList.contains('confirm-yes')) {
+        this.confirmDelete(itemId);
+      } else if (button.classList.contains('confirm-no')) {
+        this.cancelDelete(itemId);
+      }
+    });
   }
 
   // Validate input
@@ -173,12 +200,12 @@ class AkoStore {
 
     // Update action buttons
     actions.innerHTML = `
-      <button class="action-btn save-btn" onclick="akoStore.saveEdit('${id}')" title="Save changes">
+      <button class="action-btn save-btn" title="Save changes">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
         </svg>
       </button>
-      <button class="action-btn cancel-btn" onclick="akoStore.cancelEdit()" title="Cancel editing">
+      <button class="action-btn cancel-btn" title="Cancel editing">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -236,15 +263,64 @@ class AkoStore {
     }
   }
 
-  // Delete item
-  async deleteItem(id) {
+  // Show delete confirmation
+  deleteItem(id) {
     const item = this.items[id];
     const keyName = item ? item.key : 'this item';
-    if (confirm(`Delete "${keyName}"?\n\nThis action cannot be undone.`)) {
-      delete this.items[id];
-      await this.saveItems();
-      this.renderItems();
+    const itemElement = document.querySelector(`[data-id="${id}"]`);
+
+    // Hide the normal content
+    const keyEl = itemElement.querySelector('.item-key');
+    const valueEl = itemElement.querySelector('.item-value');
+    const separators = itemElement.querySelectorAll('.separator');
+    const actions = itemElement.querySelector('.item-actions');
+
+    keyEl.style.display = 'none';
+    valueEl.style.display = 'none';
+    separators.forEach(sep => sep.style.display = 'none');
+
+    // Create confirmation interface
+    const confirmContainer = document.createElement('div');
+    confirmContainer.className = 'delete-confirm';
+    confirmContainer.innerHTML = `
+      <div class="delete-confirm-text">Delete "${this.escapeHtml(keyName)}"?</div>
+      <div class="delete-confirm-actions">
+        <button class="confirm-btn confirm-yes" title="Yes, delete">Yes</button>
+        <button class="confirm-btn confirm-no" title="No, cancel">No</button>
+      </div>
+    `;
+
+    // Insert confirmation before actions and hide actions
+    itemElement.insertBefore(confirmContainer, actions);
+    actions.style.display = 'none';
+  }
+
+  // Confirm delete
+  async confirmDelete(id) {
+    delete this.items[id];
+    await this.saveItems();
+    this.renderItems();
+  }
+
+  // Cancel delete
+  cancelDelete(id) {
+    const itemElement = document.querySelector(`[data-id="${id}"]`);
+    const confirmContainer = itemElement.querySelector('.delete-confirm');
+    const keyEl = itemElement.querySelector('.item-key');
+    const valueEl = itemElement.querySelector('.item-value');
+    const separators = itemElement.querySelectorAll('.separator');
+    const actions = itemElement.querySelector('.item-actions');
+
+    // Remove confirmation interface
+    if (confirmContainer) {
+      confirmContainer.remove();
     }
+
+    // Restore normal content
+    keyEl.style.display = '';
+    valueEl.style.display = '';
+    separators.forEach(sep => sep.style.display = '');
+    actions.style.display = '';
   }
 
   // Render items list
@@ -272,17 +348,17 @@ class AkoStore {
         <div class="item-value" title="${this.escapeHtml(item.value)}">${this.escapeHtml(item.value)}</div>
         <div class="separator">|</div>
         <div class="item-actions">
-          <button class="action-btn copy-btn" onclick="akoStore.copyToClipboard('${this.escapeHtml(item.value)}')" title="Copy value">
+          <button class="action-btn copy-btn" title="Copy value">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
             </svg>
           </button>
-          <button class="action-btn edit-btn" onclick="akoStore.editItem('${item.id}')" title="Edit">
+          <button class="action-btn edit-btn" title="Edit">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
             </svg>
           </button>
-          <button class="action-btn delete-btn" onclick="akoStore.deleteItem('${item.id}')" title="Delete">
+          <button class="action-btn delete-btn" title="Delete">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
             </svg>

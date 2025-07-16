@@ -334,3 +334,61 @@ body {
 .copy-feedback.show {
   opacity: 0.9;
 }
+
+/* 删除确认界面 */
+.delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.delete-confirm-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.confirm-btn {
+  width: 32px;
+  height: 32px;
+  border: 2px solid;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.confirm-yes {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.confirm-yes:hover {
+  background: #dc2626;
+  color: white;
+  transform: scale(1.05);
+}
+
+.confirm-no {
+  border-color: #059669;
+  color: #059669;
+}
+
+.confirm-no:hover {
+  background: #059669;
+  color: white;
+  transform: scale(1.05);
+}
