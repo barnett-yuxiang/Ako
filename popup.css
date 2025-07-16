@@ -137,12 +137,15 @@ body {
   overflow-y: auto;
   background: #ffffff;
   /* Hide scrollbar but keep functionality */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
 }
 
 .items-list::-webkit-scrollbar {
-  display: none; /* WebKit browsers */
+  display: none;
+  /* WebKit browsers */
 }
 
 .empty-message {
@@ -271,7 +274,7 @@ body {
 
 
 
-/* 编辑状态样式 */
+/* Edit mode styles */
 .item.editing {
   background: #f9f9f9;
 }
@@ -315,7 +318,7 @@ body {
 
 
 
-/* 复制成功提示 */
+/* Copy success feedback */
 .copy-feedback {
   position: fixed;
   top: 50%;
@@ -335,7 +338,7 @@ body {
   opacity: 0.9;
 }
 
-/* 删除确认界面 */
+/* Delete confirmation interface */
 .delete-confirm {
   display: flex;
   align-items: center;
