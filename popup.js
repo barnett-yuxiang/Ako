@@ -10,6 +10,7 @@ class AkoStore {
     this.setupEventListeners();
     this.renderItems();
     this.validateInput(); // Set initial button state
+    this.updateClearAllButton(); // Set initial clear button state
   }
 
   // Load data from chrome.storage.local
@@ -37,10 +38,14 @@ class AkoStore {
     const keyInput = document.getElementById('keyInput');
     const valueInput = document.getElementById('valueInput');
     const addBtn = document.getElementById('addBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
     const itemsList = document.getElementById('itemsList');
 
     // Add button click event
     addBtn.addEventListener('click', () => this.addItem());
+
+    // Clear all button click event
+    clearAllBtn.addEventListener('click', () => this.showClearAllConfirm());
 
     // Enter key handling
     keyInput.addEventListener('keypress', (e) => {
@@ -146,9 +151,15 @@ class AkoStore {
 
   // Show copy success feedback
   showCopyFeedback() {
+    this.showCustomFeedback('Copied!', '#333');
+  }
+
+  // Show custom feedback with text and color
+  showCustomFeedback(text, backgroundColor = '#333') {
     const feedback = document.createElement('div');
     feedback.className = 'copy-feedback';
-    feedback.textContent = 'Copied!';
+    feedback.textContent = text;
+    feedback.style.backgroundColor = backgroundColor;
     document.body.appendChild(feedback);
 
     // Show animation
@@ -323,6 +334,96 @@ class AkoStore {
     actions.style.display = '';
   }
 
+    // Show clear all confirmation
+  showClearAllConfirm() {
+    const count = Object.keys(this.items).length;
+    if (count === 0) {
+      this.showCustomFeedback('No records to clear', '#f59e0b');
+      return;
+    }
+
+    const clearAllBtn = document.getElementById('clearAllBtn');
+
+    // Replace button with confirmation
+    clearAllBtn.innerHTML = `
+      <span style="font-size: 11px; display: flex; gap: 4px; align-items: center;">
+        <button class="confirm-clear-yes" style="background: #dc2626; border: none; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;">Yes</button>
+        <button class="confirm-clear-no" style="background: #059669; border: none; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;">No</button>
+      </span>
+    `;
+    clearAllBtn.style.background = '#f59e0b';
+    clearAllBtn.style.padding = '4px 8px';
+    clearAllBtn.title = `Clear ${count} records?`;
+
+    // Add event listeners for the confirmation buttons
+    const yesBtn = clearAllBtn.querySelector('.confirm-clear-yes');
+    const noBtn = clearAllBtn.querySelector('.confirm-clear-no');
+
+    yesBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.confirmClearAll();
+    });
+
+    noBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.cancelClearAll();
+    });
+
+    // Auto-cancel after 5 seconds
+    this.clearAllTimeout = setTimeout(() => {
+      this.cancelClearAll();
+    }, 5000);
+  }
+
+  // Confirm clear all
+  async confirmClearAll() {
+    if (this.clearAllTimeout) {
+      clearTimeout(this.clearAllTimeout);
+    }
+
+    this.items = {};
+    await this.saveItems();
+    this.renderItems();
+    this.resetClearAllButton();
+    this.showCustomFeedback('All records cleared', '#059669');
+  }
+
+  // Cancel clear all
+  cancelClearAll() {
+    if (this.clearAllTimeout) {
+      clearTimeout(this.clearAllTimeout);
+    }
+    this.resetClearAllButton();
+  }
+
+  // Reset clear all button
+  resetClearAllButton() {
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    clearAllBtn.textContent = 'Clear All';
+    clearAllBtn.style.background = '#ef4444';
+    clearAllBtn.style.padding = '6px 12px';
+    clearAllBtn.title = 'Clear all records';
+    this.updateClearAllButton();
+  }
+
+  // Update clear all button state
+  updateClearAllButton() {
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const count = Object.keys(this.items).length;
+
+    if (count === 0) {
+      clearAllBtn.disabled = true;
+      clearAllBtn.style.opacity = '0.5';
+      clearAllBtn.style.cursor = 'not-allowed';
+      clearAllBtn.title = 'No records to clear';
+    } else {
+      clearAllBtn.disabled = false;
+      clearAllBtn.style.opacity = '0.8';
+      clearAllBtn.style.cursor = 'pointer';
+      clearAllBtn.title = `Clear all ${count} records`;
+    }
+  }
+
   // Render items list
   renderItems() {
     const itemsList = document.getElementById('itemsList');
@@ -335,6 +436,7 @@ class AkoStore {
 
     if (count === 0) {
       itemsList.innerHTML = '<div class="empty-message">No items yet. Add your first key-value pair above.</div>';
+      this.updateClearAllButton();
       return;
     }
 
@@ -366,6 +468,8 @@ class AkoStore {
         </div>
       </div>
     `).join('');
+
+    this.updateClearAllButton();
   }
 
   // Escape HTML

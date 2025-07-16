@@ -24,12 +24,47 @@ body {
   padding: 10px 20px 11px;
   background: #f8f8f8;
   border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .header h2 {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+  margin: 0;
+}
+
+.clear-all-btn {
+  padding: 6px 12px;
+  background: #ef4444;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0.8;
+}
+
+.clear-all-btn:hover {
+  background: #dc2626;
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.clear-all-btn:active {
+  transform: translateY(0);
+}
+
+.clear-all-btn:disabled {
+  background: #e5e7eb !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  opacity: 0.5 !important;
 }
 
 .add-section {
