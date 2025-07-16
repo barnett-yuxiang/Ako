@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ako Key-Value Store</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header section -->
+    <div class="header">
+      <h2>kv store</h2>
+    </div>
+
+    <!-- Add section -->
+    <div class="add-section">
+      <div class="input-row">
+        <input type="text" id="keyInput" placeholder="Key" class="input-field">
+        <input type="text" id="valueInput" placeholder="Value" class="input-field">
+        <button id="addBtn" class="add-btn">Add</button>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- List section -->
+    <div class="list-section">
+      <div class="list-header">
+        <span>Saved Items (<span id="itemCount">0</span>)</span>
+      </div>
+      <div id="itemsList" class="items-list">
+        <div class="empty-message">No items yet. Add your first key-value pair above.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
