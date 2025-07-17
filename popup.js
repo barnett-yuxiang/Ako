@@ -1,7 +1,9 @@
 class AkoStore {
   constructor() {
-    this.items = {};
+    this.items = []; // Changed from object to array
     this.editingId = null;
+    this.draggedElement = null;
+    this.draggedIndex = null;
     this.init();
   }
 
@@ -13,18 +15,32 @@ class AkoStore {
     this.updateClearAllButton(); // Set initial clear button state
   }
 
-  // Load data from chrome.storage.local
+  // Load data from chrome.storage.local with migration support
   async loadItems() {
     try {
       const result = await chrome.storage.local.get(['akoItems']);
-      this.items = result.akoItems || {};
+      const data = result.akoItems || {};
+
+      // Migration: convert old object format to array format
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Old format: {id1: {id, key, value, createdAt}, id2: {...}}
+        this.items = Object.values(data).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Save in new format
+        await this.saveItems();
+      } else if (Array.isArray(data)) {
+        // New format: already an array
+        this.items = data;
+      } else {
+        // Empty/invalid data
+        this.items = [];
+      }
     } catch (error) {
       console.error('Failed to load items:', error);
-      this.items = {};
+      this.items = [];
     }
   }
 
-  // Save data to chrome.storage.local
+  // Save data to chrome.storage.local (always save as array)
   async saveItems() {
     try {
       await chrome.storage.local.set({ akoItems: this.items });
@@ -69,26 +85,190 @@ class AkoStore {
       const button = e.target.closest('button');
       if (!button) return;
 
-      const itemId = button.closest('.item')?.dataset.id;
-      if (!itemId) return;
+      const itemElement = button.closest('.item');
+      if (!itemElement) return;
+
+      const itemIndex = parseInt(itemElement.dataset.index);
+      if (isNaN(itemIndex)) return;
 
       if (button.classList.contains('copy-btn')) {
-        const itemValue = this.items[itemId]?.value;
+        const itemValue = this.items[itemIndex]?.value;
         if (itemValue) this.copyToClipboard(itemValue);
       } else if (button.classList.contains('edit-btn')) {
-        this.editItem(itemId);
+        this.editItem(itemIndex);
       } else if (button.classList.contains('delete-btn')) {
-        this.deleteItem(itemId);
+        this.deleteItem(itemIndex);
       } else if (button.classList.contains('save-btn')) {
-        this.saveEdit(itemId);
+        this.saveEdit(itemIndex);
       } else if (button.classList.contains('cancel-btn')) {
         this.cancelEdit();
       } else if (button.classList.contains('confirm-yes')) {
-        this.confirmDelete(itemId);
+        this.confirmDelete(itemIndex);
       } else if (button.classList.contains('confirm-no')) {
-        this.cancelDelete(itemId);
+        this.cancelDelete(itemIndex);
       }
     });
+
+    // Mouse-based drag and drop event listeners
+    itemsList.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+    document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+    document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+  }
+
+  // Mouse down handler - start drag
+  handleMouseDown(e) {
+    // Only handle drag from drag handle
+    const dragHandle = e.target.closest('.drag-handle');
+    if (!dragHandle) return;
+
+    const item = dragHandle.closest('.item');
+    if (!item) return;
+
+    // Prevent default to avoid text selection
+    e.preventDefault();
+
+    this.isDragging = false; // Not dragging yet, just mouse down
+    this.draggedElement = item;
+    this.draggedIndex = parseInt(item.dataset.index);
+    this.mouseDownY = e.clientY;
+    this.dragThreshold = 5; // Minimum movement to start drag
+
+    console.log('Mouse down on drag handle:', this.draggedIndex, this.items[this.draggedIndex]?.key);
+  }
+
+    // Mouse move handler - track drag
+  handleMouseMove(e) {
+    if (!this.draggedElement) return;
+
+    // Check if we should start dragging
+    if (!this.isDragging) {
+      const deltaY = Math.abs(e.clientY - this.mouseDownY);
+      if (deltaY < this.dragThreshold) return;
+
+      // Start dragging
+      this.isDragging = true;
+      this.draggedElement.classList.add('dragging');
+      document.getElementById('itemsList').classList.add('dragging');
+      document.body.style.userSelect = 'none'; // Prevent text selection
+
+      console.log('Drag started:', this.draggedIndex, this.items[this.draggedIndex]?.key);
+    }
+
+    // Provide visual feedback
+    this.updateDropIndicator(e.clientY);
+  }
+
+  // Update drop indicator based on mouse position
+  updateDropIndicator(mouseY) {
+    const itemsList = document.getElementById('itemsList');
+    const afterElement = this.getDragAfterElement(itemsList, mouseY);
+
+    // Remove previous drop indicators
+    document.querySelectorAll('.drop-indicator').forEach(el => el.classList.remove('drop-indicator'));
+
+    // Add drop indicator
+    if (afterElement == null) {
+      // Will be inserted at the end
+      const lastItem = itemsList.querySelector('.item:last-child');
+      if (lastItem && lastItem !== this.draggedElement) {
+        lastItem.classList.add('drop-indicator');
+      }
+    } else if (afterElement !== this.draggedElement) {
+      afterElement.classList.add('drop-indicator');
+    }
+  }
+
+  // Get element after drag position
+  getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.item:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+    // Mouse up handler - complete drag
+  async handleMouseUp(e) {
+    if (!this.draggedElement) return;
+
+    if (this.isDragging) {
+      // Complete the drag operation
+      await this.completeDrag(e.clientY);
+      console.log('Drag ended');
+    }
+
+    // Clean up
+    this.cleanupDragState();
+  }
+
+  // Complete drag operation
+  async completeDrag(mouseY) {
+    if (!this.draggedElement || this.draggedIndex === null) return;
+
+    const itemsList = document.getElementById('itemsList');
+    const afterElement = this.getDragAfterElement(itemsList, mouseY);
+
+    let newIndex;
+    if (afterElement == null) {
+      // Drop at the end
+      newIndex = this.items.length - 1;
+    } else {
+      // Drop before afterElement
+      newIndex = parseInt(afterElement.dataset.index);
+      // If dragging from earlier position to later, adjust index
+      if (this.draggedIndex < newIndex) {
+        newIndex--;
+      }
+    }
+
+    console.log(`Drag drop: moving "${this.items[this.draggedIndex]?.key}" from ${this.draggedIndex} to ${newIndex}`);
+
+    // Only update data if position changed
+    if (newIndex !== this.draggedIndex && newIndex >= 0) {
+      // Move item in array from draggedIndex to newIndex
+      const movedItem = this.items.splice(this.draggedIndex, 1)[0];
+      this.items.splice(newIndex, 0, movedItem);
+
+      console.log('New order:', this.items.map(item => item.key).join(', '));
+
+      // Save and re-render to ensure consistency
+      await this.saveItems();
+      this.renderItems();
+
+      console.log('Drag complete - data saved and re-rendered');
+    } else {
+      console.log('No position change detected');
+    }
+  }
+
+  // Clean up drag state
+  cleanupDragState() {
+    // Remove dragging classes
+    const itemsList = document.getElementById('itemsList');
+    itemsList.classList.remove('dragging');
+
+    if (this.draggedElement) {
+      this.draggedElement.classList.remove('dragging');
+    }
+
+    // Remove all drop indicators
+    document.querySelectorAll('.drop-indicator').forEach(el => el.classList.remove('drop-indicator'));
+
+    // Restore text selection
+    document.body.style.userSelect = '';
+
+    // Reset drag variables
+    this.draggedElement = null;
+    this.draggedIndex = null;
+    this.isDragging = false;
+    this.mouseDownY = null;
   }
 
   // Validate input
@@ -115,13 +295,15 @@ class AkoStore {
       return;
     }
 
-    const id = Date.now().toString();
-    this.items[id] = {
-      id,
+    const newItem = {
+      id: Date.now().toString(),
       key,
       value,
       createdAt: new Date().toISOString()
     };
+
+    // Add to beginning of array (newest first)
+    this.items.unshift(newItem);
 
     await this.saveItems();
     this.renderItems();
@@ -177,14 +359,14 @@ class AkoStore {
   }
 
   // Edit item
-  editItem(id) {
-    if (this.editingId) {
+  editItem(index) {
+    if (this.editingId !== null) {
       this.cancelEdit();
     }
 
-    this.editingId = id;
-    const item = this.items[id];
-    const itemElement = document.querySelector(`[data-id="${id}"]`);
+    this.editingId = index;
+    const item = this.items[index];
+    const itemElement = document.querySelector(`[data-index="${index}"]`);
 
     itemElement.classList.add('editing');
 
@@ -230,13 +412,13 @@ class AkoStore {
 
     // Add Enter key save functionality
     const inputs = editContainer.querySelectorAll('.edit-input');
-    inputs.forEach((input, index) => {
+    inputs.forEach((input, inputIndex) => {
       input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-          if (index < inputs.length - 1) {
-            inputs[index + 1].focus();
+          if (inputIndex < inputs.length - 1) {
+            inputs[inputIndex + 1].focus();
           } else {
-            this.saveEdit(id);
+            this.saveEdit(index);
           }
         } else if (e.key === 'Escape') {
           this.cancelEdit();
@@ -246,8 +428,8 @@ class AkoStore {
   }
 
   // Save edit
-  async saveEdit(id) {
-    const itemElement = document.querySelector(`[data-id="${id}"]`);
+  async saveEdit(index) {
+    const itemElement = document.querySelector(`[data-index="${index}"]`);
     const keyInput = itemElement.querySelector('.edit-key');
     const valueInput = itemElement.querySelector('.edit-value');
 
@@ -258,8 +440,8 @@ class AkoStore {
       return;
     }
 
-    this.items[id].key = newKey;
-    this.items[id].value = newValue;
+    this.items[index].key = newKey;
+    this.items[index].value = newValue;
 
     await this.saveItems();
     this.editingId = null;
@@ -268,17 +450,17 @@ class AkoStore {
 
   // Cancel edit
   cancelEdit() {
-    if (this.editingId) {
+    if (this.editingId !== null) {
       this.editingId = null;
       this.renderItems();
     }
   }
 
   // Show delete confirmation
-  deleteItem(id) {
-    const item = this.items[id];
+  deleteItem(index) {
+    const item = this.items[index];
     const keyName = item ? item.key : 'this item';
-    const itemElement = document.querySelector(`[data-id="${id}"]`);
+    const itemElement = document.querySelector(`[data-index="${index}"]`);
 
     // Hide the normal content
     const keyEl = itemElement.querySelector('.item-key');
@@ -307,15 +489,15 @@ class AkoStore {
   }
 
   // Confirm delete
-  async confirmDelete(id) {
-    delete this.items[id];
+  async confirmDelete(index) {
+    this.items.splice(index, 1);
     await this.saveItems();
     this.renderItems();
   }
 
   // Cancel delete
-  cancelDelete(id) {
-    const itemElement = document.querySelector(`[data-id="${id}"]`);
+  cancelDelete(index) {
+    const itemElement = document.querySelector(`[data-index="${index}"]`);
     const confirmContainer = itemElement.querySelector('.delete-confirm');
     const keyEl = itemElement.querySelector('.item-key');
     const valueEl = itemElement.querySelector('.item-value');
@@ -336,7 +518,7 @@ class AkoStore {
 
     // Show clear all confirmation
   showClearAllConfirm() {
-    const count = Object.keys(this.items).length;
+    const count = this.items.length;
     if (count === 0) {
       this.showCustomFeedback('No records to clear', '#f59e0b');
       return;
@@ -381,7 +563,7 @@ class AkoStore {
       clearTimeout(this.clearAllTimeout);
     }
 
-    this.items = {};
+    this.items = [];
     await this.saveItems();
     this.renderItems();
     this.resetClearAllButton();
@@ -409,7 +591,7 @@ class AkoStore {
   // Update clear all button state
   updateClearAllButton() {
     const clearAllBtn = document.getElementById('clearAllBtn');
-    const count = Object.keys(this.items).length;
+    const count = this.items.length;
 
     if (count === 0) {
       clearAllBtn.disabled = true;
@@ -429,9 +611,7 @@ class AkoStore {
     const itemsList = document.getElementById('itemsList');
     const itemCount = document.getElementById('itemCount');
 
-    const itemsArray = Object.values(this.items);
-    const count = itemsArray.length;
-
+    const count = this.items.length;
     itemCount.textContent = count;
 
     if (count === 0) {
@@ -440,11 +620,13 @@ class AkoStore {
       return;
     }
 
-    // Sort by creation time (newest first)
-    itemsArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    itemsList.innerHTML = itemsArray.map(item => `
-      <div class="item" data-id="${item.id}">
+    itemsList.innerHTML = this.items.map((item, index) => `
+      <div class="item" data-index="${index}" data-original-index="${index}">
+                  <div class="drag-handle" title="Drag to reorder">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+          </svg>
+        </div>
         <div class="item-key" title="${this.escapeHtml(item.key)}">${this.escapeHtml(item.key)}</div>
         <div class="separator">|</div>
         <div class="item-value" title="${this.escapeHtml(item.value)}">${this.escapeHtml(item.value)}</div>

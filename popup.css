@@ -200,11 +200,164 @@ body {
   border-bottom: 1px solid #e2e8f0;
   gap: 12px;
   transition: all 0.15s ease;
+  cursor: default;
 }
 
 .item:hover {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   transform: translateX(2px);
+}
+
+/* Drag handle styles */
+.drag-handle {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  color: #94a3b8;
+  position: relative;
+}
+
+.drag-handle:hover {
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
+  transform: scale(1.1);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  background: rgba(148, 163, 184, 0.2);
+  transform: scale(0.95);
+}
+
+/* Add visual hint that it's draggable */
+.drag-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  background: transparent;
+  border: 1px dashed transparent;
+  transition: all 0.15s ease;
+}
+
+.drag-handle:hover::before {
+  border-color: rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.drag-handle svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+  position: relative;
+  z-index: 1;
+}
+
+/* Dragging state styles */
+.item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  background: #ffffff;
+  border: 2px dashed #3b82f6;
+  pointer-events: none; /* Prevent interfering events during drag */
+}
+
+.item.dragging:hover {
+  transform: rotate(2deg);
+  background: #ffffff;
+}
+
+/* Disable transitions during drag for all items to prevent jumpiness */
+.items-list.dragging .item {
+  transition: none !important;
+}
+
+/* Disable hover effects when dragging */
+.items-list.dragging .item:not(.dragging):hover {
+  background: transparent;
+  transform: none;
+}
+
+/* Drop indicator - shows where item will be dropped */
+.item.drop-indicator {
+  border-bottom: 3px solid #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.05) !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Drop zone indicator */
+.items-list.drag-over::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(59, 130, 246, 0.05);
+  border: 2px dashed #3b82f6;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* Drop indicator line */
+.drop-indicator {
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  margin: 2px 20px;
+  border-radius: 2px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  animation: dropIndicatorPulse 0.8s ease-in-out infinite alternate;
+  position: relative;
+}
+
+.drop-indicator::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.5);
+}
+
+.drop-indicator::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: #1d4ed8;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.5);
+}
+
+@keyframes dropIndicatorPulse {
+  from {
+    opacity: 0.6;
+    transform: scaleY(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1.2);
+  }
 }
 
 .item-key {
