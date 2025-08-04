@@ -269,19 +269,41 @@ class AkoStore {
     });
   }
 
-  // Optimized item click handler
+    // Optimized item click handler
   handleItemClick(e) {
+    // Enhanced debugging for click events
+    this.logger.debug('Click detected', {
+      target: e.target.tagName,
+      targetClasses: Array.from(e.target.classList)
+    });
+
     const button = e.target.closest('button');
-    if (!button) return;
+    if (!button) {
+      this.logger.debug('No button found in click event');
+      return;
+    }
 
     const itemElement = button.closest('.item');
-    if (!itemElement) return;
+    if (!itemElement) {
+      this.logger.debug('No item element found for button');
+      return;
+    }
 
     const itemIndex = parseInt(itemElement.dataset.index);
     if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= this.items.length) {
       this.logger.warn('Invalid item index in click handler', { index: itemIndex });
       return;
     }
+
+    // Debug logging for edit buttons
+    const buttonClasses = Array.from(button.classList);
+    this.logger.debug('Button clicked', {
+      index: itemIndex,
+      classes: buttonClasses,
+      isEditing: itemElement.classList.contains('editing'),
+      buttonText: button.textContent.trim(),
+      editingId: this.editingId
+    });
 
     // Performance: use a lookup table instead of multiple class checks
     const actionHandlers = {
@@ -319,11 +341,21 @@ class AkoStore {
     };
 
     // Find and execute the appropriate handler
+    let handlerFound = false;
     for (const [className, handler] of Object.entries(actionHandlers)) {
       if (button.classList.contains(className)) {
+        this.logger.debug('Executing handler', { className, index: itemIndex });
         handler();
+        handlerFound = true;
         break;
       }
+    }
+
+    if (!handlerFound) {
+      this.logger.warn('No handler found for button', {
+        classes: Array.from(button.classList),
+        index: itemIndex
+      });
     }
   }
 
@@ -624,7 +656,14 @@ class AkoStore {
     feedback.className = CONSTANTS.CLASSES.COPY_FEEDBACK;
     feedback.textContent = text;
     feedback.style.backgroundColor = backgroundColor;
-    document.body.appendChild(feedback);
+
+    // Append to list-section for proper positioning
+    const listSection = document.querySelector('.list-section');
+    if (listSection) {
+      listSection.appendChild(feedback);
+    } else {
+      document.body.appendChild(feedback); // Fallback
+    }
 
     // Show animation
     const showTimeout = setTimeout(() => {
@@ -696,6 +735,28 @@ class AkoStore {
       </button>
     `;
 
+    // Add direct event listeners to ensure they work
+    const saveBtn = actions.querySelector('.save-btn');
+    const cancelBtn = actions.querySelector('.cancel-btn');
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.logger.debug('Direct save button clicked', { index });
+        this.saveEdit(index);
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.logger.debug('Direct cancel button clicked');
+        this.cancelEdit();
+      });
+    }
+
     // Focus on key input
     const keyInputEdit = editContainer.querySelector('.edit-key');
     keyInputEdit.focus();
@@ -720,14 +781,21 @@ class AkoStore {
 
   // Save edit
   async saveEdit(index) {
+    this.logger.debug('saveEdit called', { index });
     const itemElement = document.querySelector(`[data-index="${index}"]`);
     const keyInput = itemElement.querySelector('.edit-key');
     const valueInput = itemElement.querySelector('.edit-value');
+
+    if (!keyInput || !valueInput) {
+      this.logger.error('Edit inputs not found', { index });
+      return;
+    }
 
     const newKey = keyInput.value.trim();
     const newValue = valueInput.value.trim();
 
     if (!newKey || !newValue) {
+      this.logger.warn('Empty key or value in edit', { newKey, newValue });
       return;
     }
 
@@ -736,14 +804,19 @@ class AkoStore {
 
     await this.saveItems();
     this.editingId = null;
+    this.forceRerender = true; // Force re-render to exit editing state
     this.renderItems();
+    this.logger.debug('Edit saved successfully', { index });
   }
 
   // Cancel edit
   cancelEdit() {
+    this.logger.debug('cancelEdit called', { editingId: this.editingId });
     if (this.editingId !== null) {
       this.editingId = null;
+      this.forceRerender = true; // Force re-render to exit editing state
       this.renderItems();
+      this.logger.debug('Edit cancelled successfully');
     }
   }
 
@@ -997,6 +1070,13 @@ class AkoStore {
     const { itemsList, itemCount } = this.domCache;
 
     const count = this.items.length;
+
+    this.logger.debug('Render items called', {
+      count,
+      lastRenderItems: this.performanceMetrics.lastRenderItems,
+      forceRerender: this.forceRerender,
+      editingId: this.editingId
+    });
 
     // Performance: avoid unnecessary re-renders
     if (count === this.performanceMetrics.lastRenderItems &&
