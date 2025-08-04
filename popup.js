@@ -897,7 +897,10 @@ class AkoStore {
         <button class="confirm-clear-no" style="background: #059669; border: none; color: white; padding: 2px 4px; border-radius: 3px; font-size: 8px; cursor: pointer; flex: 1;">No</button>
       </span>
     `;
-    clearAllBtn.style.background = '#f59e0b';
+    // Modern confirmation style
+    clearAllBtn.style.background = 'rgba(245, 158, 11, 0.1)';
+    clearAllBtn.style.borderColor = '#f59e0b';
+    clearAllBtn.style.color = '#f59e0b';
     clearAllBtn.title = `Clear ${count} records?`;
 
     // Add event listeners for the confirmation buttons
@@ -944,8 +947,17 @@ class AkoStore {
   // Reset clear all button
   resetClearAllButton() {
     const clearAllBtn = document.getElementById('clearAllBtn');
-    clearAllBtn.textContent = 'Clear All';
-    clearAllBtn.style.background = '#ef4444';
+    // Restore original content with icon
+    clearAllBtn.innerHTML = `
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+      </svg>
+      Clear
+    `;
+    // Reset to modern outline style
+    clearAllBtn.style.background = '';
+    clearAllBtn.style.borderColor = '';
+    clearAllBtn.style.color = '';
     clearAllBtn.title = 'Clear all records';
     this.updateClearAllButton();
   }
@@ -957,13 +969,9 @@ class AkoStore {
 
     if (count === 0) {
       clearAllBtn.disabled = true;
-      clearAllBtn.style.opacity = '0.5';
-      clearAllBtn.style.cursor = 'not-allowed';
       clearAllBtn.title = 'No records to clear';
     } else {
       clearAllBtn.disabled = false;
-      clearAllBtn.style.opacity = '0.8';
-      clearAllBtn.style.cursor = 'pointer';
       clearAllBtn.title = `Clear all ${count} records`;
     }
   }

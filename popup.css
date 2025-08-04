@@ -49,35 +49,36 @@ body {
 .clear-all-btn {
   width: 70px;
   height: 28px;
-  padding: 4px 6px;
-  background: #ef4444;
-  border: none;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1.5px solid #ef4444;
   border-radius: 6px;
-  color: white;
+  color: #ef4444;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
-  opacity: 0.8;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
+  gap: 4px;
 }
 
 .clear-all-btn:hover {
-  background: #dc2626;
-  opacity: 1;
-  transform: translateY(-1px);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #dc2626;
+  color: #dc2626;
+  transform: scale(1.02);
 }
 
 .clear-all-btn:active {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
 .clear-all-btn:disabled {
-  background: #e5e7eb !important;
+  background: transparent !important;
+  border-color: #e5e7eb !important;
   color: #9ca3af !important;
   cursor: not-allowed !important;
   transform: none !important;
