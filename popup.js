@@ -64,7 +64,7 @@ class AkoLogger {
 }
 
 class AkoStore {
-  constructor() {
+    constructor() {
     // Data
     this.items = []; // Changed from object to array
     this.editingId = null;
@@ -88,6 +88,13 @@ class AkoStore {
 
     // Logger
     this.logger = new AkoLogger();
+
+    // AbortController for proper event cleanup
+    this.abortController = new AbortController();
+    this.signal = this.abortController.signal;
+
+    // Lifecycle state
+    this.isDestroyed = false;
 
     this.init();
   }
@@ -236,15 +243,23 @@ class AkoStore {
     keyInput.addEventListener('input', validateDebounced);
     valueInput.addEventListener('input', validateDebounced);
 
-    // Event delegation for dynamic buttons with performance optimization
+        // Event delegation for dynamic buttons with performance optimization
     itemsList.addEventListener('click', (e) => this.handleItemClick(e));
 
     // Mouse-based drag and drop event listeners
     itemsList.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-    document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-    document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
 
-    this.logger.debug('Event listeners setup completed');
+    // Document-level events with AbortController for proper cleanup
+    document.addEventListener('mousemove', (e) => this.handleMouseMove(e), {
+      signal: this.signal
+    });
+    document.addEventListener('mouseup', (e) => this.handleMouseUp(e), {
+      signal: this.signal
+    });
+
+    this.logger.debug('Event listeners setup completed', {
+      abortControllerSignal: this.signal.aborted ? 'aborted' : 'active'
+    });
   }
 
   // Optimized item click handler
@@ -333,9 +348,10 @@ class AkoStore {
     });
   }
 
-    // Mouse move handler - track drag
+      // Mouse move handler - track drag
   handleMouseMove(e) {
-    if (!this.draggedElement) return;
+    // ✅ Lifecycle check: Prevent operations on destroyed instance
+    if (this.isDestroyed || !this.draggedElement) return;
 
     // Check if we should start dragging
     if (!this.isDragging) {
@@ -396,12 +412,13 @@ class AkoStore {
 
     // Mouse up handler - complete drag
   async handleMouseUp(e) {
-    if (!this.draggedElement) return;
+    // ✅ Lifecycle check: Prevent operations on destroyed instance
+    if (this.isDestroyed || !this.draggedElement) return;
 
     if (this.isDragging) {
       // Complete the drag operation
       await this.completeDrag(e.clientY);
-      console.log('Drag ended');
+      this.logger.debug('Drag ended');
     }
 
     // Clean up
@@ -873,9 +890,18 @@ class AkoStore {
     }
   }
 
-  // Cleanup method for proper resource management
+    // Cleanup method for proper resource management
   cleanup() {
     this.logger.info('Cleaning up AkoStore resources');
+
+    // Mark as destroyed to prevent further operations
+    this.isDestroyed = true;
+
+    // ✅ Primary fix: Abort all document-level event listeners
+    if (this.abortController) {
+      this.abortController.abort();
+      this.logger.debug('Aborted all document-level event listeners');
+    }
 
     // Clear any pending timeouts
     if (this.clearAllTimeout) {
@@ -898,7 +924,9 @@ class AkoStore {
     // Clear DOM cache
     this.domCache = {};
 
-    this.logger.info('Cleanup completed');
+    this.logger.info('Cleanup completed', {
+      abortControllerAborted: this.abortController?.signal.aborted
+    });
   }
 
   // Render items list with performance optimization
