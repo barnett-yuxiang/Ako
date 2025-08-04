@@ -618,6 +618,9 @@ class AkoStore {
       valueInput.value = '';
       keyInput.focus();
 
+      // Update button state after clearing inputs
+      this.validateInput();
+
       const addTime = performance.now() - startTime;
       this.logger.performance('Add item', addTime, { totalItems: this.items.length });
 
