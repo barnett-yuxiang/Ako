@@ -9,6 +9,7 @@ const CONSTANTS = {
     VALUE_INPUT: '#valueInput',
     ADD_BTN: '#addBtn',
     CLEAR_ALL_BTN: '#clearAllBtn',
+    TOGGLE_VISIBILITY_BTN: '#toggleVisibilityBtn',
     ITEMS_LIST: '#itemsList',
     ITEM_COUNT: '#itemCount'
   },
@@ -68,6 +69,7 @@ class AkoStore {
     // Data
     this.items = []; // Changed from object to array
     this.editingId = null;
+    this.valuesVisible = false; // Track value visibility state - default hidden
 
     // Drag state
     this.draggedElement = null;
@@ -119,6 +121,7 @@ class AkoStore {
       valueInput: document.querySelector(CONSTANTS.SELECTORS.VALUE_INPUT),
       addBtn: document.querySelector(CONSTANTS.SELECTORS.ADD_BTN),
       clearAllBtn: document.querySelector(CONSTANTS.SELECTORS.CLEAR_ALL_BTN),
+      toggleVisibilityBtn: document.querySelector(CONSTANTS.SELECTORS.TOGGLE_VISIBILITY_BTN),
       itemsList: document.querySelector(CONSTANTS.SELECTORS.ITEMS_LIST),
       itemCount: document.querySelector(CONSTANTS.SELECTORS.ITEM_COUNT)
     };
@@ -142,6 +145,7 @@ class AkoStore {
       this.renderItems();
       this.validateInput(); // Set initial button state
       this.updateClearAllButton(); // Set initial clear button state
+      this.updateVisibilityButton(); // Set initial visibility button state
 
       const initTime = performance.now() - startTime;
       this.performanceMetrics.loadTime = initTime;
@@ -215,13 +219,16 @@ class AkoStore {
     this.logger.debug('Setting up event listeners');
 
     // Use cached DOM elements
-    const { keyInput, valueInput, addBtn, clearAllBtn, itemsList } = this.domCache;
+    const { keyInput, valueInput, addBtn, clearAllBtn, toggleVisibilityBtn, itemsList } = this.domCache;
 
     // Add button click event
     addBtn.addEventListener('click', () => this.addItem());
 
     // Clear all button click event
     clearAllBtn.addEventListener('click', () => this.showClearAllConfirm());
+
+    // Toggle visibility button click event
+    toggleVisibilityBtn.addEventListener('click', () => this.toggleValueVisibility());
 
     // Enter key handling with improved UX
     keyInput.addEventListener('keypress', (e) => {
@@ -812,13 +819,12 @@ class AkoStore {
 
     // Replace button with confirmation
     clearAllBtn.innerHTML = `
-      <span style="font-size: 11px; display: flex; gap: 4px; align-items: center;">
-        <button class="confirm-clear-yes" style="background: #dc2626; border: none; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;">Yes</button>
-        <button class="confirm-clear-no" style="background: #059669; border: none; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;">No</button>
+      <span style="font-size: 9px; display: flex; gap: 2px; align-items: center; width: 100%; justify-content: center;">
+        <button class="confirm-clear-yes" style="background: #dc2626; border: none; color: white; padding: 2px 4px; border-radius: 3px; font-size: 8px; cursor: pointer; flex: 1;">Yes</button>
+        <button class="confirm-clear-no" style="background: #059669; border: none; color: white; padding: 2px 4px; border-radius: 3px; font-size: 8px; cursor: pointer; flex: 1;">No</button>
       </span>
     `;
     clearAllBtn.style.background = '#f59e0b';
-    clearAllBtn.style.padding = '4px 8px';
     clearAllBtn.title = `Clear ${count} records?`;
 
     // Add event listeners for the confirmation buttons
@@ -867,7 +873,6 @@ class AkoStore {
     const clearAllBtn = document.getElementById('clearAllBtn');
     clearAllBtn.textContent = 'Clear All';
     clearAllBtn.style.background = '#ef4444';
-    clearAllBtn.style.padding = '6px 12px';
     clearAllBtn.title = 'Clear all records';
     this.updateClearAllButton();
   }
@@ -888,6 +893,63 @@ class AkoStore {
       clearAllBtn.style.cursor = 'pointer';
       clearAllBtn.title = `Clear all ${count} records`;
     }
+  }
+
+    // Toggle value visibility
+  toggleValueVisibility() {
+    this.valuesVisible = !this.valuesVisible;
+    this.logger.debug('Toggling value visibility', { visible: this.valuesVisible });
+
+    this.updateVisibilityButton();
+    this.updateValueVisibility();
+  }
+
+  // Update visibility button state
+  updateVisibilityButton() {
+    const { toggleVisibilityBtn } = this.domCache;
+    const count = this.items.length;
+
+    // Update button disabled state
+    if (count === 0) {
+      toggleVisibilityBtn.disabled = true;
+      toggleVisibilityBtn.title = 'No items to toggle';
+    } else {
+      toggleVisibilityBtn.disabled = false;
+      toggleVisibilityBtn.title = this.valuesVisible ? 'Hide values' : 'Show values';
+    }
+
+    // Update eye icon
+    const eyeOpen = toggleVisibilityBtn.querySelector('.eye-open');
+    const eyeClosed = toggleVisibilityBtn.querySelector('.eye-closed');
+
+    if (this.valuesVisible) {
+      eyeOpen.style.display = 'block';
+      eyeClosed.style.display = 'none';
+    } else {
+      eyeOpen.style.display = 'none';
+      eyeClosed.style.display = 'block';
+    }
+  }
+
+    // Update value visibility in DOM
+  updateValueVisibility() {
+    const valueElements = document.querySelectorAll('.item-value');
+
+    valueElements.forEach((element) => {
+      if (this.valuesVisible) {
+        element.classList.remove('hidden');
+        // Restore original text
+        const originalText = element.dataset.originalText;
+        if (originalText) {
+          element.textContent = originalText;
+        }
+      } else {
+        element.classList.add('hidden');
+        // Store original text and replace with fixed three dots
+        element.dataset.originalText = element.textContent;
+        element.textContent = '...';
+      }
+    });
   }
 
     // Cleanup method for proper resource management
@@ -966,8 +1028,14 @@ class AkoStore {
     itemsList.appendChild(fragment);
 
     this.updateClearAllButton();
+    this.updateVisibilityButton();
     this.forceRerender = false;
     this.performanceMetrics.lastRenderItems = count;
+
+    // Apply current visibility state to newly rendered items (default hidden)
+    if (!this.valuesVisible && count > 0) {
+      setTimeout(() => this.updateValueVisibility(), 10);
+    }
 
     const renderTime = performance.now() - startTime;
     this.performanceMetrics.renderTime = renderTime;

@@ -13,7 +13,7 @@
     <!-- Header section -->
     <div class="header">
       <h2>kv store</h2>
-      <button id="clearAllBtn" class="clear-all-btn" title="Clear all records">Clear All</button>
+      <div class="profile-avatar"></div>
     </div>
 
     <!-- Add section -->
@@ -32,6 +32,18 @@
     <div class="list-section">
       <div class="list-header">
         <span>Saved Items (<span id="itemCount">0</span>)</span>
+        <div class="header-actions">
+          <button id="toggleVisibilityBtn" class="toggle-visibility-btn" title="Toggle value visibility">
+            <svg class="eye-open" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            <svg class="eye-closed" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12c2-4 6-6 8-6s6 2 8 6"/>
+            </svg>
+          </button>
+          <button id="clearAllBtn" class="clear-all-btn" title="Clear all records">Clear All</button>
+        </div>
       </div>
       <div id="itemsList" class="items-list">
         <div class="empty-message">No items yet. Add your first key-value pair above.</div>
