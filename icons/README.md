@@ -1,32 +1,32 @@
-# 图标文件说明
+# Icon Files
 
-这个文件夹需要包含以下尺寸的PNG图标文件：
+This folder should contain PNG icon files in the following sizes:
 
-- `icon16.png` - 16x16 像素
-- `icon32.png` - 32x32 像素
-- `icon48.png` - 48x48 像素
-- `icon128.png` - 128x128 像素
+- `icon16.png` - 16x16 pixels
+- `icon32.png` - 32x32 pixels
+- `icon48.png` - 48x48 pixels
+- `icon128.png` - 128x128 pixels
 
-## 如何获取图标
+## How to Get Icons
 
-### 方法1：使用在线图标生成器
-1. 访问 [Favicon Generator](https://favicon.io) 或类似网站
-2. 上传一个正方形的图片或选择一个文本图标
-3. 下载生成的图标包
-4. 将对应尺寸的PNG文件放到这个文件夹中
+### Method 1: Online Icon Generators
+1. Visit [Favicon Generator](https://favicon.io) or similar websites
+2. Upload a square image or choose a text-based icon
+3. Download the generated icon pack
+4. Place the corresponding PNG files in this folder
 
-### 方法2：使用设计工具
-1. 使用Figma、Canva等设计工具创建简单图标
-2. 导出为PNG格式，确保是正方形
-3. 调整为所需尺寸
+### Method 2: Design Tools
+1. Use design tools like Figma, Canva to create simple icons
+2. Export as PNG format, ensure they are square
+3. Resize to required dimensions
 
-### 方法3：临时解决方案
-如果暂时没有图标，可以：
-1. 创建简单的彩色正方形PNG文件
-2. 或者在网上找免费的小图标
+### Method 3: Quick Solution
+If you need icons quickly:
+1. Create simple colored square PNG files
+2. Or find free small icons online
 
-## 建议的图标设计
-- 简约风格，符合现代设计趋势
-- 使用蓝紫色渐变（与界面一致）
-- 可以是字母"A"（Ako的首字母）
-- 或者使用键值对相关的符号，如 `{}` 或 `=`
+## Recommended Icon Design
+- Minimalist style, following modern design trends
+- Use blue-purple gradient (matching the interface)
+- Could be the letter "A" (first letter of Ako)
+- Or use key-value related symbols like `{}` or `=`

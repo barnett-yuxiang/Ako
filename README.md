@@ -1,93 +1,92 @@
 # Ako Key-Value Store
 
-一个简约、现代、美观的Chrome浏览器插件，用于记录和管理键值对数据。
+A simple and elegant Chrome extension for storing and managing key-value pairs locally.
 
-## ✨ 特性
+## ✨ Features
 
-- 🎨 **现代化设计** - 简约美观的用户界面，渐变色彩搭配
-- 💾 **本地存储** - 数据保存在本地，无需网络，不会因清理缓存而丢失
-- ⚡ **操作简单** - 一键添加、编辑、删除键值对
-- 🔒 **隐私安全** - 所有数据仅保存在本机，不上传到网络
-- 📱 **响应式设计** - 适配不同屏幕尺寸
-- ⌨️ **快捷键支持** - 支持回车键快速操作
-- 🚚 **拖拽排序** - 支持鼠标拖拽重新排列项目顺序
-- 🎯 **智能输入** - 防重复键名，实时输入验证
-- 📊 **性能优化** - 智能渲染，减少不必要的DOM操作
-- 📝 **调试日志** - 完整的操作日志系统（开发版本）
+- 🎨 **Modern Design** - Clean and beautiful user interface with gradient colors
+- 💾 **Local Storage** - Data saved locally, no network required, persists after cache clearing
+- ⚡ **Simple Operations** - One-click add, edit, and delete key-value pairs
+- 🔒 **Privacy & Security** - All data stays on your device, never uploaded
+- 📱 **Responsive Design** - Works on different screen sizes
+- ⌨️ **Keyboard Shortcuts** - Enter key support for quick operations
+- 🚚 **Drag & Drop** - Reorder items by dragging
+- 🎯 **Smart Input** - Prevents duplicate keys, real-time validation
+- 📊 **Performance Optimized** - Smart rendering, minimal DOM operations
+- 📝 **Debug Logging** - Complete logging system for development
 
-## 🚀 安装指南
+## 🚀 Installation
 
-### 准备工作
-1. 确保你有Chrome浏览器（版本88+）
-2. 准备插件图标文件（参见 `icons/README.md`）
+### Prerequisites
+1. Chrome browser (version 88+)
+2. Icon files (see `icons/README.md`)
 
-### 安装步骤
-1. **准备插件包**
+### Steps
+1. **Clone the project**
    ```bash
-   # 克隆或下载这个项目
    git clone [repository-url]
    cd Ako
    ```
 
-2. **准备图标**
-   - 按照 `icons/README.md` 中的说明准备图标文件
-   - 将图标文件放在 `icons/` 文件夹中
+2. **Prepare icons**
+   - Follow instructions in `icons/README.md`
+   - Place icon files in the `icons/` folder
 
-3. **安装到Chrome**
-   - 打开Chrome浏览器
-   - 访问 `chrome://extensions/`
-   - 开启右上角的"开发者模式"
-   - 点击"加载已解压的扩展程序"
-   - 选择这个项目的文件夹
+3. **Install to Chrome**
+   - Open Chrome browser
+   - Go to `chrome://extensions/`
+   - Enable "Developer mode" in the top right
+   - Click "Load unpacked"
+   - Select this project folder
 
-4. **确认安装**
-   - 插件安装成功后，你会在Chrome工具栏看到Ako图标
-   - 点击图标即可打开插件
+4. **Confirm installation**
+   - You'll see the Ako icon in Chrome toolbar
+   - Click the icon to open the extension
 
-## 📖 使用方法
+## 📖 Usage
 
-### 添加键值对
-1. 点击浏览器工具栏中的Ako图标
-2. 在"输入键名"字段输入键（Key）
-3. 在"输入值"字段输入值（Value）
-4. 点击"添加"按钮或按回车键
+### Adding Key-Value Pairs
+1. Click the Ako icon in Chrome toolbar
+2. Enter key in the "Key" field
+3. Enter value in the "Value" field
+4. Click "Add" button or press Enter
 
-### 编辑键值对
-1. 在已保存的项目列表中，点击铅笔图标 ✏️
-2. 修改键名或值
-3. 点击勾号 ✓ 保存，或点击 ✕ 取消
+### Editing Items
+1. Click the edit icon ✏️ on any saved item
+2. Modify the key or value
+3. Click ✓ to save or ✕ to cancel
 
-### 删除键值对
-1. 在已保存的项目列表中，点击垃圾桶图标 🗑️
-2. 在确认对话框中点击"确定"
+### Deleting Items
+1. Click the delete icon 🗑️ on any saved item
+2. Confirm by clicking "Yes"
 
-### 快捷键
-- `Tab` / `Enter`: 在输入框间切换
-- `Enter`: 添加新项目（在值输入框中）
-- `Enter`: 保存编辑（在编辑模式中）
-- `Escape`: 取消编辑
+### Keyboard Shortcuts
+- `Tab` / `Enter`: Navigate between input fields
+- `Enter`: Add new item (in value field)
+- `Enter`: Save edit (in edit mode)
+- `Escape`: Cancel edit
 
-## 🛠️ 技术实现
+## 🛠️ Technical Details
 
-### 数据存储
-- 使用Chrome Extension Storage API (`chrome.storage.local`)
-- 数据持久化保存，不会因浏览器缓存清理而丢失
-- 支持大容量存储（最大约5MB）
+### Storage
+- Uses Chrome Extension Storage API (`chrome.storage.local`)
+- Persistent storage, survives browser cache clearing
+- Supports large storage capacity (up to ~5MB)
 
-### 技术栈
-- **Manifest Version**: V3（最新版本）
-- **前端**: HTML5 + CSS3 + Vanilla JavaScript
-- **存储**: Chrome Storage API
-- **UI设计**: 现代化扁平设计，响应式布局
+### Tech Stack
+- **Manifest Version**: V3 (latest version)
+- **Frontend**: HTML5 + CSS3 + Vanilla JavaScript
+- **Storage**: Chrome Storage API
+- **UI Design**: Modern flat design, responsive layout
 
-### 文件结构
+### File Structure
 ```
 Ako/
-├── manifest.json          # 插件配置文件
-├── popup.html            # 弹窗页面
-├── popup.css             # 样式文件
-├── popup.js              # 主要逻辑
-├── icons/                # 图标文件夹
+├── manifest.json          # Extension config
+├── popup.html            # Popup page
+├── popup.css             # Styles
+├── popup.js              # Main logic
+├── icons/                # Icon folder
 │   ├── icon16.png
 │   ├── icon32.png
 │   ├── icon48.png
@@ -96,54 +95,54 @@ Ako/
 └── README.md
 ```
 
-## 🔧 开发相关
+## 🔧 Development
 
-### 权限说明
-- `storage`: 用于本地数据存储
+### Permissions
+- `storage`: For local data storage
 
-### 兼容性
+### Compatibility
 - Chrome 88+
-- 基于Manifest V3（Chrome推荐的最新标准）
+- Based on Manifest V3 (Chrome's latest standard)
 
-### 安全性
-- 所有数据仅保存在本地
-- 不涉及网络请求
-- 不收集用户数据
-- 开源代码，透明可审计
+### Security
+- All data stored locally only
+- No network requests
+- No user data collection
+- Open source, transparent and auditable
 
-## 📝 使用场景
+## 📝 Use Cases
 
-- **开发者工具**: 保存API密钥、配置参数
-- **学习笔记**: 记录概念定义、代码片段
-- **日常记录**: 保存常用信息、快速备忘
-- **密码管理**: 临时保存非敏感的登录信息
-- **数据收集**: 整理分类信息
+- **Developer Tools**: Save API keys, config parameters
+- **Study Notes**: Record definitions, code snippets
+- **Daily Records**: Store useful info, quick memos
+- **Password Management**: Temporarily save non-sensitive login info
+- **Data Collection**: Organize categorized information
 
-## 📈 版本更新
+## 📈 Version History
 
-### v1.0.2 (当前版本)
-- 🚀 **性能优化**: DOM缓存、智能渲染、减少不必要的重绘
-- 📝 **日志系统**: 添加完整的调试和性能监控日志
-- 🛡️ **错误处理**: 增强的错误处理和用户反馈
-- 🎯 **输入优化**: 防重复键名检查、输入防抖
-- 🧹 **内存管理**: 更好的资源清理和内存泄漏防护
-- ⚡ **代码重构**: 常量提取、方法优化、性能改进
+### v1.1.2 (Current)
+- 🚀 **Performance**: DOM caching, smart rendering, reduced repaints
+- 📝 **Logging**: Complete debug and performance monitoring logs
+- 🛡️ **Error Handling**: Enhanced error handling and user feedback
+- 🎯 **Input Optimization**: Duplicate key prevention, input debouncing
+- 🧹 **Memory Management**: Better resource cleanup and memory leak prevention
+- ⚡ **Code Refactoring**: Constants extraction, method optimization
 
 ### v1.0.1
-- 🐛 Bug修复和稳定性改进
+- 🐛 Bug fixes and stability improvements
 
 ### v1.0.0
-- 🎉 首次发布
-- ✨ 基础功能实现
+- 🎉 Initial release
+- ✨ Basic functionality
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交Issue和Pull Request来改进这个项目！
+Issues and Pull Requests are welcome to improve this project!
 
-## 📄 许可证
+## 📄 License
 
 [MIT License](LICENSE)
 
-## 🙏 致谢
+## 🙏 Acknowledgments
 
-感谢所有为这个项目提供建议和反馈的用户。
+Thanks to all users who provided suggestions and feedback for this project.
