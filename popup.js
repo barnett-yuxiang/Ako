@@ -76,7 +76,9 @@ class AkoStore {
     this.draggedIndex = null;
     this.isDragging = false;
     this.mouseDownY = null;
+    this.mouseDownX = null;
     this.dragThreshold = 5;
+    this.dragOffset = { x: 0, y: 0 };
 
     // DOM element cache
     this.domCache = {};
@@ -375,6 +377,14 @@ class AkoStore {
     this.draggedElement = item;
     this.draggedIndex = parseInt(item.dataset.index);
     this.mouseDownY = e.clientY;
+    this.mouseDownX = e.clientX;
+
+    // Calculate drag offset relative to element
+    const rect = item.getBoundingClientRect();
+    this.dragOffset = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
 
     if (isNaN(this.draggedIndex) || this.draggedIndex < 0 || this.draggedIndex >= this.items.length) {
       this.logger.warn('Invalid drag index', { index: this.draggedIndex });
@@ -403,14 +413,29 @@ class AkoStore {
       this.domCache.itemsList.classList.add(CONSTANTS.CLASSES.DRAGGING);
       document.body.style.userSelect = 'none'; // Prevent text selection
 
-      this.logger.debug('Drag started', {
+      this.logger.info('Drag started', {
         index: this.draggedIndex,
         key: this.items[this.draggedIndex]?.key
       });
     }
 
+    // Update dragged element position to follow mouse
+    this.updateDraggedElementPosition(e.clientX, e.clientY);
+
     // Provide visual feedback
     this.updateDropIndicator(e.clientY);
+  }
+
+  // Update dragged element position to follow mouse
+  updateDraggedElementPosition(mouseX, mouseY) {
+    if (!this.draggedElement || !this.isDragging) return;
+
+    // Position element to follow mouse cursor
+    const x = mouseX - this.dragOffset.x;
+    const y = mouseY - this.dragOffset.y;
+
+    this.draggedElement.style.left = `${x}px`;
+    this.draggedElement.style.top = `${y}px`;
   }
 
   // Update drop indicator based on mouse position
@@ -457,7 +482,10 @@ class AkoStore {
     if (this.isDragging) {
       // Complete the drag operation
       await this.completeDrag(e.clientY);
-      this.logger.debug('Drag ended');
+      this.logger.info('Drag ended', {
+      movedFrom: this.draggedIndex,
+      itemKey: this.items[this.draggedIndex]?.key
+    });
     }
 
     // Clean up
@@ -484,24 +512,28 @@ class AkoStore {
       }
     }
 
-    console.log(`Drag drop: moving "${this.items[this.draggedIndex]?.key}" from ${this.draggedIndex} to ${newIndex}`);
-
     // Only update data if position changed
     if (newIndex !== this.draggedIndex && newIndex >= 0) {
-      // Move item in array from draggedIndex to newIndex
+      const startTime = performance.now();
       const movedItem = this.items.splice(this.draggedIndex, 1)[0];
       this.items.splice(newIndex, 0, movedItem);
 
-      console.log('New order:', this.items.map(item => item.key).join(', '));
+      this.logger.info('Item reordered', {
+        key: movedItem.key,
+        from: this.draggedIndex,
+        to: newIndex
+      });
 
       // Save and re-render to ensure consistency
       await this.saveItems();
       this.forceRerender = true;
       this.renderItems();
 
-      console.log('Drag complete - data saved and re-rendered');
-    } else {
-      console.log('No position change detected');
+      const dragTime = performance.now() - startTime;
+      this.logger.performance('Drag operation', dragTime, {
+        itemCount: this.items.length,
+        moved: `${this.draggedIndex}→${newIndex}`
+      });
     }
   }
 
@@ -513,6 +545,9 @@ class AkoStore {
 
     if (this.draggedElement) {
       this.draggedElement.classList.remove('dragging');
+      // Reset position styles
+      this.draggedElement.style.left = '';
+      this.draggedElement.style.top = '';
     }
 
     // Remove all drop indicators
@@ -526,6 +561,8 @@ class AkoStore {
     this.draggedIndex = null;
     this.isDragging = false;
     this.mouseDownY = null;
+    this.mouseDownX = null;
+    this.dragOffset = { x: 0, y: 0 };
   }
 
   // Validate input
