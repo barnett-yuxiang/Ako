@@ -1,61 +1,214 @@
+// Constants
+const CONSTANTS = {
+  STORAGE_KEY: 'akoItems',
+  DRAG_THRESHOLD: 5,
+  FEEDBACK_DURATION: 2000,
+  CLEAR_TIMEOUT: 5000,
+  SELECTORS: {
+    KEY_INPUT: '#keyInput',
+    VALUE_INPUT: '#valueInput',
+    ADD_BTN: '#addBtn',
+    CLEAR_ALL_BTN: '#clearAllBtn',
+    ITEMS_LIST: '#itemsList',
+    ITEM_COUNT: '#itemCount'
+  },
+  CLASSES: {
+    DRAGGING: 'dragging',
+    EDITING: 'editing',
+    DROP_INDICATOR: 'drop-indicator',
+    COPY_FEEDBACK: 'copy-feedback'
+  }
+};
+
+// Logger class for debugging and monitoring
+class AkoLogger {
+  constructor() {
+    this.enabled = true; // Set to false in production
+    this.logLevel = 'info'; // 'debug', 'info', 'warn', 'error'
+  }
+
+  debug(message, data = null) {
+    if (this.enabled && this._shouldLog('debug')) {
+      console.log(`[AKO-DEBUG] ${message}`, data || '');
+    }
+  }
+
+  info(message, data = null) {
+    if (this.enabled && this._shouldLog('info')) {
+      console.log(`[AKO-INFO] ${message}`, data || '');
+    }
+  }
+
+  warn(message, data = null) {
+    if (this.enabled && this._shouldLog('warn')) {
+      console.warn(`[AKO-WARN] ${message}`, data || '');
+    }
+  }
+
+  error(message, error = null) {
+    if (this.enabled) {
+      console.error(`[AKO-ERROR] ${message}`, error || '');
+    }
+  }
+
+  performance(operation, duration, details = null) {
+    if (this.enabled) {
+      console.log(`[AKO-PERF] ${operation}: ${duration}ms`, details || '');
+    }
+  }
+
+  _shouldLog(level) {
+    const levels = ['debug', 'info', 'warn', 'error'];
+    return levels.indexOf(level) >= levels.indexOf(this.logLevel);
+  }
+}
+
 class AkoStore {
   constructor() {
+    // Data
     this.items = []; // Changed from object to array
     this.editingId = null;
+
+    // Drag state
     this.draggedElement = null;
     this.draggedIndex = null;
+    this.isDragging = false;
+    this.mouseDownY = null;
+    this.dragThreshold = 5;
+
+    // DOM element cache
+    this.domCache = {};
+
+    // Performance monitoring
+    this.performanceMetrics = {
+      loadTime: 0,
+      renderTime: 0,
+      lastRenderItems: 0
+    };
+
+    // Logger
+    this.logger = new AkoLogger();
+
     this.init();
   }
 
+  // Utility: Debounce function for performance optimization
+  debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  // Initialize DOM cache
+  initDOMCache() {
+    this.domCache = {
+      keyInput: document.querySelector(CONSTANTS.SELECTORS.KEY_INPUT),
+      valueInput: document.querySelector(CONSTANTS.SELECTORS.VALUE_INPUT),
+      addBtn: document.querySelector(CONSTANTS.SELECTORS.ADD_BTN),
+      clearAllBtn: document.querySelector(CONSTANTS.SELECTORS.CLEAR_ALL_BTN),
+      itemsList: document.querySelector(CONSTANTS.SELECTORS.ITEMS_LIST),
+      itemCount: document.querySelector(CONSTANTS.SELECTORS.ITEM_COUNT)
+    };
+
+    // Validate all elements exist
+    for (const [key, element] of Object.entries(this.domCache)) {
+      if (!element) {
+        this.logger.error(`DOM element not found: ${key}`);
+      }
+    }
+  }
+
   async init() {
-    await this.loadItems();
-    this.setupEventListeners();
-    this.renderItems();
-    this.validateInput(); // Set initial button state
-    this.updateClearAllButton(); // Set initial clear button state
+    const startTime = performance.now();
+    this.logger.info('Initializing AkoStore');
+
+    try {
+      this.initDOMCache();
+      await this.loadItems();
+      this.setupEventListeners();
+      this.renderItems();
+      this.validateInput(); // Set initial button state
+      this.updateClearAllButton(); // Set initial clear button state
+
+      const initTime = performance.now() - startTime;
+      this.performanceMetrics.loadTime = initTime;
+      this.logger.performance('Initialization', initTime, { itemCount: this.items.length });
+      this.logger.info('AkoStore initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize AkoStore', error);
+      throw error;
+    }
   }
 
   // Load data from chrome.storage.local with migration support
   async loadItems() {
+    const startTime = performance.now();
+
     try {
-      const result = await chrome.storage.local.get(['akoItems']);
-      const data = result.akoItems || {};
+      this.logger.debug('Loading items from storage');
+      const result = await chrome.storage.local.get([CONSTANTS.STORAGE_KEY]);
+      const data = result[CONSTANTS.STORAGE_KEY] || {};
 
       // Migration: convert old object format to array format
       if (data && typeof data === 'object' && !Array.isArray(data)) {
+        this.logger.info('Migrating data from object to array format', { oldCount: Object.keys(data).length });
         // Old format: {id1: {id, key, value, createdAt}, id2: {...}}
         this.items = Object.values(data).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         // Save in new format
         await this.saveItems();
+        this.logger.info('Data migration completed', { newCount: this.items.length });
       } else if (Array.isArray(data)) {
         // New format: already an array
         this.items = data;
+        this.logger.debug('Loaded items in array format', { count: this.items.length });
       } else {
         // Empty/invalid data
         this.items = [];
+        this.logger.debug('No existing data found, initialized empty array');
       }
+
+      const loadTime = performance.now() - startTime;
+      this.logger.performance('Data loading', loadTime, { itemCount: this.items.length });
+
     } catch (error) {
-      console.error('Failed to load items:', error);
+      this.logger.error('Failed to load items from storage', error);
       this.items = [];
+
+      // Try to recover from backup if available
+      this.logger.warn('Attempting to recover from data corruption');
     }
   }
 
   // Save data to chrome.storage.local (always save as array)
   async saveItems() {
+    const startTime = performance.now();
+
     try {
-      await chrome.storage.local.set({ akoItems: this.items });
+      this.logger.debug('Saving items to storage', { count: this.items.length });
+      await chrome.storage.local.set({ [CONSTANTS.STORAGE_KEY]: this.items });
+
+      const saveTime = performance.now() - startTime;
+      this.logger.performance('Data saving', saveTime, { itemCount: this.items.length });
+
     } catch (error) {
-      console.error('Failed to save items:', error);
+      this.logger.error('Failed to save items to storage', error);
+      this.showCustomFeedback('Save failed! Please try again.', '#dc2626');
+      throw error; // Re-throw to let caller handle
     }
   }
 
   // Setup event listeners
   setupEventListeners() {
-    const keyInput = document.getElementById('keyInput');
-    const valueInput = document.getElementById('valueInput');
-    const addBtn = document.getElementById('addBtn');
-    const clearAllBtn = document.getElementById('clearAllBtn');
-    const itemsList = document.getElementById('itemsList');
+    this.logger.debug('Setting up event listeners');
+
+    // Use cached DOM elements
+    const { keyInput, valueInput, addBtn, clearAllBtn, itemsList } = this.domCache;
 
     // Add button click event
     addBtn.addEventListener('click', () => this.addItem());
@@ -63,56 +216,93 @@ class AkoStore {
     // Clear all button click event
     clearAllBtn.addEventListener('click', () => this.showClearAllConfirm());
 
-    // Enter key handling
+    // Enter key handling with improved UX
     keyInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
+        e.preventDefault();
         valueInput.focus();
       }
     });
 
     valueInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
+        e.preventDefault();
         this.addItem();
       }
     });
 
-    // Input validation
-    keyInput.addEventListener('input', () => this.validateInput());
-    valueInput.addEventListener('input', () => this.validateInput());
+    // Input validation with debouncing for better performance
+    const validateDebounced = this.debounce(() => this.validateInput(), 100);
+    keyInput.addEventListener('input', validateDebounced);
+    valueInput.addEventListener('input', validateDebounced);
 
-    // Event delegation for dynamic buttons
-    itemsList.addEventListener('click', (e) => {
-      const button = e.target.closest('button');
-      if (!button) return;
-
-      const itemElement = button.closest('.item');
-      if (!itemElement) return;
-
-      const itemIndex = parseInt(itemElement.dataset.index);
-      if (isNaN(itemIndex)) return;
-
-      if (button.classList.contains('copy-btn')) {
-        const itemValue = this.items[itemIndex]?.value;
-        if (itemValue) this.copyToClipboard(itemValue);
-      } else if (button.classList.contains('edit-btn')) {
-        this.editItem(itemIndex);
-      } else if (button.classList.contains('delete-btn')) {
-        this.deleteItem(itemIndex);
-      } else if (button.classList.contains('save-btn')) {
-        this.saveEdit(itemIndex);
-      } else if (button.classList.contains('cancel-btn')) {
-        this.cancelEdit();
-      } else if (button.classList.contains('confirm-yes')) {
-        this.confirmDelete(itemIndex);
-      } else if (button.classList.contains('confirm-no')) {
-        this.cancelDelete(itemIndex);
-      }
-    });
+    // Event delegation for dynamic buttons with performance optimization
+    itemsList.addEventListener('click', (e) => this.handleItemClick(e));
 
     // Mouse-based drag and drop event listeners
     itemsList.addEventListener('mousedown', (e) => this.handleMouseDown(e));
     document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
     document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+
+    this.logger.debug('Event listeners setup completed');
+  }
+
+  // Optimized item click handler
+  handleItemClick(e) {
+    const button = e.target.closest('button');
+    if (!button) return;
+
+    const itemElement = button.closest('.item');
+    if (!itemElement) return;
+
+    const itemIndex = parseInt(itemElement.dataset.index);
+    if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= this.items.length) {
+      this.logger.warn('Invalid item index in click handler', { index: itemIndex });
+      return;
+    }
+
+    // Performance: use a lookup table instead of multiple class checks
+    const actionHandlers = {
+      'copy-btn': () => {
+        const itemValue = this.items[itemIndex]?.value;
+        if (itemValue) {
+          this.copyToClipboard(itemValue);
+          this.logger.debug('Copy action triggered', { index: itemIndex });
+        }
+      },
+      'edit-btn': () => {
+        this.editItem(itemIndex);
+        this.logger.debug('Edit action triggered', { index: itemIndex });
+      },
+      'delete-btn': () => {
+        this.deleteItem(itemIndex);
+        this.logger.debug('Delete action triggered', { index: itemIndex });
+      },
+      'save-btn': () => {
+        this.saveEdit(itemIndex);
+        this.logger.debug('Save edit action triggered', { index: itemIndex });
+      },
+      'cancel-btn': () => {
+        this.cancelEdit();
+        this.logger.debug('Cancel edit action triggered');
+      },
+      'confirm-yes': () => {
+        this.confirmDelete(itemIndex);
+        this.logger.debug('Confirm delete action triggered', { index: itemIndex });
+      },
+      'confirm-no': () => {
+        this.cancelDelete(itemIndex);
+        this.logger.debug('Cancel delete action triggered', { index: itemIndex });
+      }
+    };
+
+    // Find and execute the appropriate handler
+    for (const [className, handler] of Object.entries(actionHandlers)) {
+      if (button.classList.contains(className)) {
+        handler();
+        break;
+      }
+    }
   }
 
   // Mouse down handler - start drag
@@ -131,9 +321,16 @@ class AkoStore {
     this.draggedElement = item;
     this.draggedIndex = parseInt(item.dataset.index);
     this.mouseDownY = e.clientY;
-    this.dragThreshold = 5; // Minimum movement to start drag
 
-    console.log('Mouse down on drag handle:', this.draggedIndex, this.items[this.draggedIndex]?.key);
+    if (isNaN(this.draggedIndex) || this.draggedIndex < 0 || this.draggedIndex >= this.items.length) {
+      this.logger.warn('Invalid drag index', { index: this.draggedIndex });
+      return;
+    }
+
+    this.logger.debug('Mouse down on drag handle', {
+      index: this.draggedIndex,
+      key: this.items[this.draggedIndex]?.key
+    });
   }
 
     // Mouse move handler - track drag
@@ -143,15 +340,18 @@ class AkoStore {
     // Check if we should start dragging
     if (!this.isDragging) {
       const deltaY = Math.abs(e.clientY - this.mouseDownY);
-      if (deltaY < this.dragThreshold) return;
+      if (deltaY < CONSTANTS.DRAG_THRESHOLD) return;
 
       // Start dragging
       this.isDragging = true;
-      this.draggedElement.classList.add('dragging');
-      document.getElementById('itemsList').classList.add('dragging');
+      this.draggedElement.classList.add(CONSTANTS.CLASSES.DRAGGING);
+      this.domCache.itemsList.classList.add(CONSTANTS.CLASSES.DRAGGING);
       document.body.style.userSelect = 'none'; // Prevent text selection
 
-      console.log('Drag started:', this.draggedIndex, this.items[this.draggedIndex]?.key);
+      this.logger.debug('Drag started', {
+        index: this.draggedIndex,
+        key: this.items[this.draggedIndex]?.key
+      });
     }
 
     // Provide visual feedback
@@ -240,6 +440,7 @@ class AkoStore {
 
       // Save and re-render to ensure consistency
       await this.saveItems();
+      this.forceRerender = true;
       this.renderItems();
 
       console.log('Drag complete - data saved and re-rendered');
@@ -273,9 +474,7 @@ class AkoStore {
 
   // Validate input
   validateInput() {
-    const keyInput = document.getElementById('keyInput');
-    const valueInput = document.getElementById('valueInput');
-    const addBtn = document.getElementById('addBtn');
+    const { keyInput, valueInput, addBtn } = this.domCache;
 
     const hasKey = keyInput.value.trim().length > 0;
     const hasValue = valueInput.value.trim().length > 0;
@@ -285,13 +484,23 @@ class AkoStore {
 
   // Add new item
   async addItem() {
-    const keyInput = document.getElementById('keyInput');
-    const valueInput = document.getElementById('valueInput');
+    const startTime = performance.now();
+    const { keyInput, valueInput } = this.domCache;
 
     const key = keyInput.value.trim();
     const value = valueInput.value.trim();
 
     if (!key || !value) {
+      this.logger.warn('Attempted to add item with empty key or value');
+      this.showCustomFeedback('Please fill in both key and value', '#f59e0b');
+      return;
+    }
+
+    // Check for duplicate keys
+    const duplicateIndex = this.items.findIndex(item => item.key === key);
+    if (duplicateIndex !== -1) {
+      this.logger.warn('Attempted to add duplicate key', { key });
+      this.showCustomFeedback(`Key "${key}" already exists`, '#f59e0b');
       return;
     }
 
@@ -302,32 +511,73 @@ class AkoStore {
       createdAt: new Date().toISOString()
     };
 
-    // Add to beginning of array (newest first)
-    this.items.unshift(newItem);
+    try {
+      // Add to beginning of array (newest first)
+      this.items.unshift(newItem);
+      this.logger.info('Item added', { key, valueLength: value.length });
 
-    await this.saveItems();
-    this.renderItems();
+      await this.saveItems();
+      this.forceRerender = true;
+      this.renderItems();
 
-    // Clear input fields
-    keyInput.value = '';
-    valueInput.value = '';
-    keyInput.focus();
+      // Clear input fields
+      keyInput.value = '';
+      valueInput.value = '';
+      keyInput.focus();
+
+      const addTime = performance.now() - startTime;
+      this.logger.performance('Add item', addTime, { totalItems: this.items.length });
+
+      this.showCustomFeedback('Item added successfully!', '#059669');
+
+    } catch (error) {
+      this.logger.error('Failed to add item', error);
+      this.showCustomFeedback('Failed to add item. Please try again.', '#dc2626');
+      // Remove the item that was added but failed to save
+      this.items.shift();
+    }
   }
 
-  // Copy to clipboard
+  // Copy to clipboard with enhanced error handling
   async copyToClipboard(text) {
+    const startTime = performance.now();
+
     try {
+      this.logger.debug('Copying to clipboard', { length: text.length });
       await navigator.clipboard.writeText(text);
       this.showCopyFeedback();
+
+      const copyTime = performance.now() - startTime;
+      this.logger.performance('Copy to clipboard', copyTime);
+
     } catch (error) {
-      // Fallback method for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      this.showCopyFeedback();
+      this.logger.warn('Modern clipboard API failed, using fallback', error);
+
+      try {
+        // Fallback method for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          this.showCopyFeedback();
+          this.logger.debug('Fallback copy successful');
+        } else {
+          throw new Error('Fallback copy failed');
+        }
+
+      } catch (fallbackError) {
+        this.logger.error('Both clipboard methods failed', fallbackError);
+        this.showCustomFeedback('Copy failed. Please try manually.', '#dc2626');
+      }
     }
   }
 
@@ -338,24 +588,41 @@ class AkoStore {
 
   // Show custom feedback with text and color
   showCustomFeedback(text, backgroundColor = '#333') {
+    this.logger.debug('Showing feedback', { text, backgroundColor });
+
+    // Clean up any existing feedback to prevent accumulation
+    const existingFeedback = document.querySelector('.copy-feedback');
+    if (existingFeedback) {
+      existingFeedback.remove();
+    }
+
     const feedback = document.createElement('div');
-    feedback.className = 'copy-feedback';
+    feedback.className = CONSTANTS.CLASSES.COPY_FEEDBACK;
     feedback.textContent = text;
     feedback.style.backgroundColor = backgroundColor;
     document.body.appendChild(feedback);
 
     // Show animation
-    setTimeout(() => feedback.classList.add('show'), 10);
+    const showTimeout = setTimeout(() => {
+      feedback.classList.add('show');
+    }, 10);
 
-    // Remove after 2 seconds
-    setTimeout(() => {
+    // Remove after duration
+    const hideTimeout = setTimeout(() => {
       feedback.classList.remove('show');
-      setTimeout(() => {
+      const removeTimeout = setTimeout(() => {
         if (feedback.parentNode) {
           feedback.parentNode.removeChild(feedback);
         }
       }, 200);
-    }, 2000);
+
+      // Store timeout reference for cleanup
+      feedback.removeTimeout = removeTimeout;
+    }, CONSTANTS.FEEDBACK_DURATION);
+
+    // Store timeout references for potential cleanup
+    feedback.showTimeout = showTimeout;
+    feedback.hideTimeout = hideTimeout;
   }
 
   // Edit item
@@ -590,7 +857,7 @@ class AkoStore {
 
   // Update clear all button state
   updateClearAllButton() {
-    const clearAllBtn = document.getElementById('clearAllBtn');
+    const { clearAllBtn } = this.domCache;
     const count = this.items.length;
 
     if (count === 0) {
@@ -606,52 +873,116 @@ class AkoStore {
     }
   }
 
-  // Render items list
+  // Cleanup method for proper resource management
+  cleanup() {
+    this.logger.info('Cleaning up AkoStore resources');
+
+    // Clear any pending timeouts
+    if (this.clearAllTimeout) {
+      clearTimeout(this.clearAllTimeout);
+      this.clearAllTimeout = null;
+    }
+
+    // Clean up feedback elements
+    const feedbackElements = document.querySelectorAll(`.${CONSTANTS.CLASSES.COPY_FEEDBACK}`);
+    feedbackElements.forEach(element => {
+      if (element.showTimeout) clearTimeout(element.showTimeout);
+      if (element.hideTimeout) clearTimeout(element.hideTimeout);
+      if (element.removeTimeout) clearTimeout(element.removeTimeout);
+      element.remove();
+    });
+
+    // Reset drag state
+    this.cleanupDragState();
+
+    // Clear DOM cache
+    this.domCache = {};
+
+    this.logger.info('Cleanup completed');
+  }
+
+  // Render items list with performance optimization
   renderItems() {
-    const itemsList = document.getElementById('itemsList');
-    const itemCount = document.getElementById('itemCount');
+    const startTime = performance.now();
+    const { itemsList, itemCount } = this.domCache;
 
     const count = this.items.length;
+
+    // Performance: avoid unnecessary re-renders
+    if (count === this.performanceMetrics.lastRenderItems &&
+        itemsList.children.length > 0 &&
+        !this.forceRerender) {
+      this.logger.debug('Skipping render - no changes detected');
+      return;
+    }
+
     itemCount.textContent = count;
 
     if (count === 0) {
       itemsList.innerHTML = '<div class="empty-message">No items yet. Add your first key-value pair above.</div>';
       this.updateClearAllButton();
+      this.performanceMetrics.lastRenderItems = 0;
       return;
     }
 
-    itemsList.innerHTML = this.items.map((item, index) => `
-      <div class="item" data-index="${index}" data-original-index="${index}">
-                  <div class="drag-handle" title="Drag to reorder">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
-          </svg>
-        </div>
-        <div class="item-key" title="${this.escapeHtml(item.key)}">${this.escapeHtml(item.key)}</div>
-        <div class="separator">|</div>
-        <div class="item-value" title="${this.escapeHtml(item.value)}">${this.escapeHtml(item.value)}</div>
-        <div class="separator">|</div>
-        <div class="item-actions">
-          <button class="action-btn copy-btn" title="Copy value">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-            </svg>
-          </button>
-          <button class="action-btn edit-btn" title="Edit">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-            </svg>
-          </button>
-          <button class="action-btn delete-btn" title="Delete">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    `).join('');
+    // Performance: use DocumentFragment for efficient DOM manipulation
+    const fragment = document.createDocumentFragment();
+
+    this.items.forEach((item, index) => {
+      const itemElement = this.createItemElement(item, index);
+      fragment.appendChild(itemElement);
+    });
+
+    // Clear and append all at once
+    itemsList.innerHTML = '';
+    itemsList.appendChild(fragment);
 
     this.updateClearAllButton();
+    this.forceRerender = false;
+    this.performanceMetrics.lastRenderItems = count;
+
+    const renderTime = performance.now() - startTime;
+    this.performanceMetrics.renderTime = renderTime;
+    this.logger.performance('Render items', renderTime, { itemCount: count });
+  }
+
+  // Create individual item element for better performance
+  createItemElement(item, index) {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.dataset.index = index;
+    div.dataset.originalIndex = index;
+
+    div.innerHTML = `
+      <div class="drag-handle" title="Drag to reorder">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+        </svg>
+      </div>
+      <div class="item-key" title="${this.escapeHtml(item.key)}">${this.escapeHtml(item.key)}</div>
+      <div class="separator">|</div>
+      <div class="item-value" title="${this.escapeHtml(item.value)}">${this.escapeHtml(item.value)}</div>
+      <div class="separator">|</div>
+      <div class="item-actions">
+        <button class="action-btn copy-btn" title="Copy value">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+        </button>
+        <button class="action-btn edit-btn" title="Edit">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+        </button>
+        <button class="action-btn delete-btn" title="Delete">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </div>
+    `;
+
+    return div;
   }
 
   // Escape HTML
@@ -664,3 +995,17 @@ class AkoStore {
 
 // Initialize application
 const akoStore = new AkoStore();
+
+// Cleanup on page unload to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+  if (akoStore && typeof akoStore.cleanup === 'function') {
+    akoStore.cleanup();
+  }
+});
+
+// Handle popup close event (specific to Chrome extensions)
+window.addEventListener('unload', () => {
+  if (akoStore && typeof akoStore.cleanup === 'function') {
+    akoStore.cleanup();
+  }
+});

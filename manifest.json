@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Ako Key-Value Store",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A simple and elegant key-value store tool with local storage",
   "permissions": [
     "storage"
