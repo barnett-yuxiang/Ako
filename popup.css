@@ -431,8 +431,8 @@ body {
 .item-key {
   font-weight: 600;
   color: #1e293b;
-  width: 100px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -448,14 +448,14 @@ body {
 }
 
 .item-value {
-  flex: 1;
+  width: 100px;
+  flex-shrink: 0;
   color: #475569;
   font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
   transition: all 0.15s ease;
 }
 
