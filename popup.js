@@ -933,8 +933,8 @@ class AkoStore {
     // Replace button with confirmation
     clearAllBtn.innerHTML = `
       <span style="font-size: 9px; display: flex; gap: 2px; align-items: center; width: 100%; justify-content: center;">
-        <button class="confirm-clear-yes" style="background: #dc2626; border: none; color: white; padding: 2px 4px; border-radius: 3px; font-size: 8px; cursor: pointer; flex: 1;">Yes</button>
-        <button class="confirm-clear-no" style="background: #059669; border: none; color: white; padding: 2px 4px; border-radius: 3px; font-size: 8px; cursor: pointer; flex: 1;">No</button>
+        <button class="confirm-clear-yes" style="background: #dc2626; border: none; color: white; padding: 2px 4px; border-radius: 3px; font-size: 10px; cursor: pointer; flex: 1; font-weight: 600;">Y</button>
+        <button class="confirm-clear-no" style="background: #059669; border: none; color: white; padding: 2px 4px; border-radius: 3px; font-size: 10px; cursor: pointer; flex: 1; font-weight: 600;">N</button>
       </span>
     `;
     // Modern confirmation style
