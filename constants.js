@@ -14,6 +14,9 @@ const CONSTANTS = {
     ADD_BTN: '#addBtn',
     CLEAR_ALL_BTN: '#clearAllBtn',
     TOGGLE_VISIBILITY_BTN: '#toggleVisibilityBtn',
+    EXPORT_BTN: '#exportBtn',
+    IMPORT_BTN: '#importBtn',
+    IMPORT_FILE_INPUT: '#importFileInput',
     ITEMS_LIST: '#itemsList',
     ITEM_COUNT: '#itemCount'
   },

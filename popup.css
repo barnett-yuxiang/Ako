@@ -36,6 +36,41 @@ body {
   margin: 0;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.header-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.header-btn:active {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.header-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
 .author-badge {
   width: 28px;
   height: 28px;

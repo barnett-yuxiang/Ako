@@ -54,6 +54,9 @@ class AkoStore {
       addBtn: document.querySelector(CONSTANTS.SELECTORS.ADD_BTN),
       clearAllBtn: document.querySelector(CONSTANTS.SELECTORS.CLEAR_ALL_BTN),
       toggleVisibilityBtn: document.querySelector(CONSTANTS.SELECTORS.TOGGLE_VISIBILITY_BTN),
+      exportBtn: document.querySelector(CONSTANTS.SELECTORS.EXPORT_BTN),
+      importBtn: document.querySelector(CONSTANTS.SELECTORS.IMPORT_BTN),
+      importFileInput: document.querySelector(CONSTANTS.SELECTORS.IMPORT_FILE_INPUT),
       itemsList: document.querySelector(CONSTANTS.SELECTORS.ITEMS_LIST),
       itemCount: document.querySelector(CONSTANTS.SELECTORS.ITEM_COUNT)
     };
@@ -98,12 +101,15 @@ class AkoStore {
   setupEventListeners() {
     logger.debug('Setting up event listeners');
 
-    const { keyInput, valueInput, addBtn, clearAllBtn, toggleVisibilityBtn, itemsList } = this.domCache;
+    const { keyInput, valueInput, addBtn, clearAllBtn, toggleVisibilityBtn, exportBtn, importBtn, importFileInput, itemsList } = this.domCache;
 
     // Button events
     addBtn.addEventListener('click', () => this.addItem());
     clearAllBtn.addEventListener('click', () => this.showClearAllConfirm());
     toggleVisibilityBtn.addEventListener('click', () => this.toggleValueVisibility());
+    exportBtn.addEventListener('click', () => this.exportItems());
+    importBtn.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', (e) => this.importItems(e));
 
     // Keyboard events
     keyInput.addEventListener('keypress', (e) => {
@@ -674,6 +680,121 @@ class AkoStore {
         element.textContent = '...';
       }
     });
+  }
+
+  // Export items to JSON file
+  exportItems() {
+    try {
+      logger.info('Exporting items', { count: this.items.length });
+
+      if (this.items.length === 0) {
+        this.showCustomFeedback('No items to export', '#f59e0b');
+        return;
+      }
+
+      // Create export data
+      const exportData = {
+        version: chrome.runtime.getManifest().version,
+        exportDate: new Date().toISOString(),
+        itemCount: this.items.length,
+        items: this.items
+      };
+
+      // Create blob and download
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      a.href = url;
+      a.download = `ako-export-${timestamp}.json`;
+      a.click();
+
+      URL.revokeObjectURL(url);
+
+      logger.info('Export successful', { fileName: a.download });
+      this.showCustomFeedback(`Exported ${this.items.length} items`, '#059669');
+    } catch (error) {
+      logger.error('Failed to export items', error);
+      this.showCustomFeedback('Export failed', '#dc2626');
+    }
+  }
+
+  // Import items from JSON file
+  async importItems(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      logger.info('Importing items from file', { fileName: file.name });
+
+      const text = await file.text();
+      const importData = JSON.parse(text);
+
+      // Validate data structure
+      if (!importData.items || !Array.isArray(importData.items)) {
+        throw new Error('Invalid file format');
+      }
+
+      const importedItems = importData.items;
+      const originalCount = this.items.length;
+      let addedCount = 0;
+      let skippedCount = 0;
+
+      // Process each imported item
+      for (const item of importedItems) {
+        if (!item.key || !item.value) {
+          skippedCount++;
+          continue;
+        }
+
+        let finalKey = item.key;
+        let counter = 1;
+
+        // Handle duplicate keys by renaming
+        while (this.items.some(existingItem => existingItem.key === finalKey)) {
+          finalKey = `${item.key}_${counter}`;
+          counter++;
+        }
+
+        // Add item with new ID and timestamp
+        const newItem = {
+          id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
+          key: finalKey,
+          value: item.value,
+          createdAt: new Date().toISOString()
+        };
+
+        this.items.unshift(newItem);
+        addedCount++;
+      }
+
+      // Save to storage
+      await this.storageManager.saveItems(this.items);
+
+      // Refresh UI
+      this.forceRerender = true;
+      this.renderItems();
+
+      // Reset file input
+      event.target.value = '';
+
+      logger.info('Import successful', {
+        imported: importedItems.length,
+        added: addedCount,
+        skipped: skippedCount,
+        total: this.items.length
+      });
+
+      this.showCustomFeedback(
+        `Imported ${addedCount} items${skippedCount > 0 ? ` (${skippedCount} skipped)` : ''}`,
+        '#059669'
+      );
+    } catch (error) {
+      logger.error('Failed to import items', error);
+      this.showCustomFeedback('Import failed: Invalid file', '#dc2626');
+      event.target.value = '';
+    }
   }
 
   // Cleanup method
