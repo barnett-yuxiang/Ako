@@ -18,10 +18,24 @@ FILES := \
 	ako-store.js \
 	icons
 
-.PHONY: package clean print-version
+.PHONY: package clean print-version check
 
-package: $(ZIP)
-	@echo "Created $(ZIP)"
+# JavaScript syntax check using Node.js
+check:
+	@echo "🔍 Checking JavaScript syntax..."
+	@for file in constants.js logger.js storage-manager.js drag-drop-handler.js ako-store.js popup.js; do \
+		if node --check "$$file" 2>/dev/null; then \
+			echo "  ✓ $$file"; \
+		else \
+			echo "  ❌ $$file has syntax errors:"; \
+			node --check "$$file"; \
+			exit 1; \
+		fi \
+	done
+	@echo "✅ All JavaScript files passed syntax check"
+
+package: check $(ZIP)
+	@echo "📦 Created $(ZIP)"
 
 $(ZIP): $(FILES)
 	@mkdir -p $(DIST_DIR)
