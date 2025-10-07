@@ -9,8 +9,13 @@ ZIP := $(DIST_DIR)/$(NAME)-$(VERSION).zip
 FILES := \
 	manifest.json \
 	popup.html \
-	popup.js \
 	popup.css \
+	popup.js \
+	constants.js \
+	logger.js \
+	storage-manager.js \
+	drag-drop-handler.js \
+	ako-store.js \
 	icons
 
 .PHONY: package clean print-version

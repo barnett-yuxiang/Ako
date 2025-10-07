@@ -2,7 +2,11 @@
 
 A simple and elegant Chrome extension for storing and managing key-value pairs locally.
 
-## ✨ Features
+## Installation
+
+[Ako Key-Value Store](https://chromewebstore.google.com/detail/gogmmfikekeholnepojdokedjikmfkob)
+
+## Features
 
 - 🎨 **Modern Design** - Clean and beautiful user interface with gradient colors
 - 💾 **Local Storage** - Data saved locally, no network required, persists after cache clearing
@@ -15,35 +19,7 @@ A simple and elegant Chrome extension for storing and managing key-value pairs l
 - 📊 **Performance Optimized** - Smart rendering, minimal DOM operations
 - 📝 **Debug Logging** - Complete logging system for development
 
-## 🚀 Installation
-
-### Prerequisites
-1. Chrome browser (version 88+)
-2. Icon files (see `icons/README.md`)
-
-### Steps
-1. **Clone the project**
-   ```bash
-   git clone [repository-url]
-   cd Ako
-   ```
-
-2. **Prepare icons**
-   - Follow instructions in `icons/README.md`
-   - Place icon files in the `icons/` folder
-
-3. **Install to Chrome**
-   - Open Chrome browser
-   - Go to `chrome://extensions/`
-   - Enable "Developer mode" in the top right
-   - Click "Load unpacked"
-   - Select this project folder
-
-4. **Confirm installation**
-   - You'll see the Ako icon in Chrome toolbar
-   - Click the icon to open the extension
-
-## 📖 Usage
+## Usage
 
 ### Adding Key-Value Pairs
 1. Click the Ako icon in Chrome toolbar
@@ -66,7 +42,7 @@ A simple and elegant Chrome extension for storing and managing key-value pairs l
 - `Enter`: Save edit (in edit mode)
 - `Escape`: Cancel edit
 
-## 🛠️ Technical Details
+## Technical Details
 
 ### Storage
 - Uses Chrome Extension Storage API (`chrome.storage.local`)
@@ -82,20 +58,26 @@ A simple and elegant Chrome extension for storing and managing key-value pairs l
 ### File Structure
 ```
 Ako/
-├── manifest.json          # Extension config
-├── popup.html            # Popup page
-├── popup.css             # Styles
-├── popup.js              # Main logic
-├── icons/                # Icon folder
+├── manifest.json             # Extension config
+├── popup.html               # Popup page
+├── popup.css                # Styles
+├── popup.js                 # Entry point & module loader
+├── constants.js             # Constants and configuration
+├── logger.js                # Debug logging system
+├── storage-manager.js       # Storage with quota monitoring
+├── drag-drop-handler.js     # Drag & drop functionality
+├── ako-store.js             # Main application logic
+├── icons/                   # Icon folder
 │   ├── icon16.png
 │   ├── icon32.png
 │   ├── icon48.png
 │   ├── icon128.png
 │   └── README.md
+├── Makefile                 # Build script
 └── README.md
 ```
 
-## 🔧 Development
+## Development
 
 ### Permissions
 - `storage`: For local data storage
@@ -110,7 +92,7 @@ Ako/
 - No user data collection
 - Open source, transparent and auditable
 
-## 📝 Use Cases
+## Use Cases
 
 - **Developer Tools**: Save API keys, config parameters
 - **Study Notes**: Record definitions, code snippets
@@ -118,15 +100,19 @@ Ako/
 - **Password Management**: Temporarily save non-sensitive login info
 - **Data Collection**: Organize categorized information
 
-## 📈 Version History
+## Version History
 
-### v1.1.2 (Current)
+### v1.1.3 (Current)
 - 🚀 **Performance**: DOM caching, smart rendering, reduced repaints
 - 📝 **Logging**: Complete debug and performance monitoring logs
 - 🛡️ **Error Handling**: Enhanced error handling and user feedback
 - 🎯 **Input Optimization**: Duplicate key prevention, input debouncing
 - 🧹 **Memory Management**: Better resource cleanup and memory leak prevention
-- ⚡ **Code Refactoring**: Constants extraction, method optimization
+- ⚡ **Code Refactoring**: Code split into modules, storage quota check
+- 💾 **Storage**: Added quota monitoring and warnings
+
+### v1.1.2
+- 🐛 Code structure improvements and optimizations
 
 ### v1.0.1
 - 🐛 Bug fixes and stability improvements
@@ -143,6 +129,6 @@ Issues and Pull Requests are welcome to improve this project!
 
 [MIT License](LICENSE)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Thanks to all users who provided suggestions and feedback for this project.
