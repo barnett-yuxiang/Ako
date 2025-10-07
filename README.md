@@ -100,31 +100,6 @@ Ako/
 - **Password Management**: Temporarily save non-sensitive login info
 - **Data Collection**: Organize categorized information
 
-## Version History
-
-### v1.1.3 (Current)
-- 🚀 **Performance**: DOM caching, smart rendering, reduced repaints
-- 📝 **Logging**: Complete debug and performance monitoring logs
-- 🛡️ **Error Handling**: Enhanced error handling and user feedback
-- 🎯 **Input Optimization**: Duplicate key prevention, input debouncing
-- 🧹 **Memory Management**: Better resource cleanup and memory leak prevention
-- ⚡ **Code Refactoring**: Code split into modules, storage quota check
-- 💾 **Storage**: Added quota monitoring and warnings
-
-### v1.1.2
-- 🐛 Code structure improvements and optimizations
-
-### v1.0.1
-- 🐛 Bug fixes and stability improvements
-
-### v1.0.0
-- 🎉 Initial release
-- ✨ Basic functionality
-
-## 🤝 Contributing
-
-Issues and Pull Requests are welcome to improve this project!
-
 ## 📄 License
 
 [MIT License](LICENSE)

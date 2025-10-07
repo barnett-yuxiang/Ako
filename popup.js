@@ -1,6 +1,6 @@
 // Ako Key-Value Store - Main Entry Point
 // Loads all required modules and initializes the application
-(function() {
+(function () {
   'use strict';
 
   // Script loading utility
