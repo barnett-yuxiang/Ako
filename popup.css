@@ -36,23 +36,49 @@ body {
   margin: 0;
 }
 
-.profile-avatar {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-btn {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #6b7280;
+  flex-shrink: 0;
 }
 
-.profile-avatar svg {
+.header-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.header-btn:active {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.header-btn svg {
   width: 16px;
   height: 16px;
+  stroke-width: 2;
+}
+
+.author-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid white;
+  flex-shrink: 0;
+  object-fit: cover;
+  display: block;
 }
 
 .clear-all-btn {
@@ -426,10 +452,10 @@ body {
 }
 
 .item-key {
+  width: 100px;
+  flex-shrink: 0;
   font-weight: 600;
   color: #1e293b;
-  flex: 1;
-  min-width: 0;
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -445,8 +471,8 @@ body {
 }
 
 .item-value {
-  width: 100px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   color: #475569;
   font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 13px;
