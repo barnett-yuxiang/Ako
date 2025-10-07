@@ -118,4 +118,36 @@ class StorageManager {
       return null;
     }
   }
+
+  // Load values visibility state
+  async loadValuesVisible() {
+    try {
+      logger.debug('Loading values visibility state');
+      const result = await chrome.storage.local.get([CONSTANTS.STORAGE_KEY_VALUES_VISIBLE]);
+      const valuesVisible = result[CONSTANTS.STORAGE_KEY_VALUES_VISIBLE];
+
+      // Default: false (hidden by default for privacy)
+      const state = valuesVisible !== undefined ? valuesVisible : false;
+
+      logger.debug('Values visibility loaded', { valuesVisible: state });
+      return state;
+    } catch (error) {
+      logger.error('Failed to load values visibility', error);
+      return false;
+    }
+  }
+
+  // Save values visibility state
+  async saveValuesVisible(valuesVisible) {
+    try {
+      logger.debug('Saving values visibility state', { valuesVisible });
+      await chrome.storage.local.set({
+        [CONSTANTS.STORAGE_KEY_VALUES_VISIBLE]: valuesVisible
+      });
+      logger.debug('Values visibility saved successfully');
+    } catch (error) {
+      logger.error('Failed to save values visibility', error);
+      throw error;
+    }
+  }
 }

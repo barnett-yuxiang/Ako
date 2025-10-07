@@ -73,7 +73,11 @@ class AkoStore {
 
     try {
       this.initDOMCache();
+
+      // Load items and values visibility state
       this.items = await this.storageManager.loadItems();
+      this.valuesVisible = await this.storageManager.loadValuesVisible();
+
       this.setupEventListeners();
       this.renderItems();
       this.validateInput();
@@ -83,7 +87,7 @@ class AkoStore {
       const initTime = performance.now() - startTime;
       this.performanceMetrics.loadTime = initTime;
       logger.performance('Initialization', initTime, { itemCount: this.items.length });
-      logger.info('AkoStore initialized successfully');
+      logger.info('AkoStore initialized successfully', { valuesVisible: this.valuesVisible });
     } catch (error) {
       logger.error('Failed to initialize AkoStore', error);
       throw error;
@@ -613,12 +617,19 @@ class AkoStore {
   }
 
   // Toggle value visibility
-  toggleValueVisibility() {
+  async toggleValueVisibility() {
     this.valuesVisible = !this.valuesVisible;
     logger.debug('Toggling value visibility', { visible: this.valuesVisible });
 
     this.updateVisibilityButton();
     this.updateValueVisibility();
+
+    // Save visibility state
+    try {
+      await this.storageManager.saveValuesVisible(this.valuesVisible);
+    } catch (error) {
+      logger.error('Failed to save values visibility', error);
+    }
   }
 
   // Update visibility button state

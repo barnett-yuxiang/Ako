@@ -1,6 +1,7 @@
 // Constants and Configuration
 const CONSTANTS = {
   STORAGE_KEY: 'akoItems',
+  STORAGE_KEY_VALUES_VISIBLE: 'akoValuesVisible',
   DRAG_THRESHOLD: 5,
   FEEDBACK_DURATION: 2000,
   CLEAR_TIMEOUT: 5000,
